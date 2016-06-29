@@ -7,7 +7,8 @@
     "server": "better-npm-run dev-server",
     "schema": "node ./bin/updateSchema",
     "test-api": "node ./node_modules/mocha/bin/mocha -s 250 -c __test-api__/*/* --compilers js:babel-core/register --watch",
-    "lint": "eslint -c .eslintrc bin api"
+    "lint": "eslint -c .eslintrc bin api",
+    "lint-fix": "eslint -c .eslintrc bin api --fix"
   },
   "betterScripts": {
     "dev-server": {

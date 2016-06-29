@@ -42,15 +42,15 @@ import {
 
 
 
-var PlantType = new GraphQLObjectType({
+const PlantType = new GraphQLObjectType({
   name: 'NameOfPlantType',
   fields: () => ({
-    id: {type: GraphQLID},
-    text: {type: GraphQLString},
+    id: { type: GraphQLID },
+    text: { type: GraphQLString },
   }),
 });
 
-var PlantListType = new GraphQLObjectType({
+const PlantListType = new GraphQLObjectType({
   name: 'NameOfPlantListType',
   fields: () => ({
     plantArray: { type: new GraphQLList(PlantType) },
@@ -59,15 +59,15 @@ var PlantListType = new GraphQLObjectType({
 });
 
 
-var FeatureType = new GraphQLObjectType({
+const FeatureType = new GraphQLObjectType({
   name: 'NameOfFeatureType',
   fields: () => ({
-    id: {type: GraphQLID},
-    text: {type: GraphQLString},
+    id: { type: GraphQLID },
+    text: { type: GraphQLString },
   }),
 });
 
-var FeatureListType = new GraphQLObjectType({
+const FeatureListType = new GraphQLObjectType({
   name: 'NameOfFeatureListType',
   fields: () => ({
     featureArray: { type: new GraphQLList(FeatureType) },
@@ -76,16 +76,16 @@ var FeatureListType = new GraphQLObjectType({
 });
 
 
-var RelationshipType = new GraphQLObjectType({
+const RelationshipType = new GraphQLObjectType({
   name: 'NameOfRelationshipType',
   fields: () => ({
-    plant: {type: PlantType},
-    id: {type: GraphQLID},
-    feature: {type: FeatureType},
+    plant: { type: PlantType },
+    id: { type: GraphQLID },
+    feature: { type: FeatureType },
   }),
 });
 
-var RelationshipListType = new GraphQLObjectType({
+const RelationshipListType = new GraphQLObjectType({
   name: 'NameOfRelationshipListType',
   fields: () => ({
     relationshipArray: { type: new GraphQLList(RelationshipType) },
@@ -94,18 +94,18 @@ var RelationshipListType = new GraphQLObjectType({
 });
 
 
-var TaoTaoType = new GraphQLObjectType({
+const TaoTaoType = new GraphQLObjectType({
   name: 'NameOfTaoTaoType',
   fields: () => ({
-    forPlant: {type: PlantListType},
-    forFeature: {type: FeatureListType},
-    forRelationship: {type: RelationshipListType},
+    forPlant: { type: PlantListType },
+    forFeature: { type: FeatureListType },
+    forRelationship: { type: RelationshipListType },
   }),
 });
 
 
 
-var MutationOfCreatePlant = mutationWithClientMutationId({
+const MutationOfCreatePlant = mutationWithClientMutationId({
   name: 'NameOfCreateNewPlantasdfasdf',
   inputFields: {
     text: { type: new GraphQLNonNull(GraphQLString) },
@@ -116,14 +116,14 @@ var MutationOfCreatePlant = mutationWithClientMutationId({
       resolve: getPlant,
     },
   },
-  mutateAndGetPayload: ({text}) => {
-    let newPlant = addPlant(text);
+  mutateAndGetPayload: ({ text }) => {
+    const newPlant = addPlant(text);
     return newPlant;
   },
 });
 
 
-var MutationOfCreateFeature = mutationWithClientMutationId({
+const MutationOfCreateFeature = mutationWithClientMutationId({
   name: 'NameOfCreateNewFeatureasdfasdf',
   inputFields: {
     text: { type: new GraphQLNonNull(GraphQLString) },
@@ -134,14 +134,14 @@ var MutationOfCreateFeature = mutationWithClientMutationId({
       resolve: getFeature,
     },
   },
-  mutateAndGetPayload: ({text}) => {
-    let newFeature = addFeature(text);
+  mutateAndGetPayload: ({ text }) => {
+    const newFeature = addFeature(text);
     return newFeature;
   },
 });
 
 
-var MutationOfLetPlantArrayHasFeature = mutationWithClientMutationId({
+const MutationOfLetPlantArrayHasFeature = mutationWithClientMutationId({
   name: 'NameOfMutationOfLetPlantArrayHasFeatureasdfasdf',
   inputFields: {
     plantUUIDArray: { type: new GraphQLList(GraphQLString) },
@@ -153,14 +153,14 @@ var MutationOfLetPlantArrayHasFeature = mutationWithClientMutationId({
       resolve: getRelationShip,
     },
   },
-  mutateAndGetPayload: ({plantUUIDArray, featureUUID}) => {
-    let relationships = letPlantArrayHasFeature(plantUUIDArray, featureUUID);
+  mutateAndGetPayload: ({ plantUUIDArray, featureUUID }) => {
+    const relationships = letPlantArrayHasFeature(plantUUIDArray, featureUUID);
     return relationships;
   },
 });
 
 
-var MutationOfLetPlantHasFeatureArray = mutationWithClientMutationId({
+const MutationOfLetPlantHasFeatureArray = mutationWithClientMutationId({
   name: 'NameOfMutationOfLetPlantHasFeatureArrayasdfasdf',
   inputFields: {
     plantUUID: { type: new GraphQLNonNull(GraphQLString) },
@@ -172,14 +172,14 @@ var MutationOfLetPlantHasFeatureArray = mutationWithClientMutationId({
       resolve: getRelationShip,
     },
   },
-  mutateAndGetPayload: ({plantUUID, featureUUIDArray}) => {
-    let relationships = letPlantHasFeatureArray(plantUUID, featureUUIDArray);
+  mutateAndGetPayload: ({ plantUUID, featureUUIDArray }) => {
+    const relationships = letPlantHasFeatureArray(plantUUID, featureUUIDArray);
     return relationships;
   },
 });
 
 
-export var Schema =  new GraphQLSchema({
+export const Schema = new GraphQLSchema({
   query: new GraphQLObjectType({
     name: 'QueryThatLigoudanWants',
     fields: () => ({

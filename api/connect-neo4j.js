@@ -3,21 +3,10 @@ import { v1 as neo4j } from 'neo4j-driver';
 
 import utils from 'utility';
 import uuid from 'node-uuid';
-import config from '../config'
+import config from '../config';
 import fs from 'fs';
 import path from 'path';
 
-
-// 注入一个方便的用法，看数组是不是包含某个值
-Array.prototype.contains = function(obj) {
-  var i = this.length;
-  while (i--) {
-    if (this[i] === obj) {
-      return true;
-    }
-  }
-  return false;
-}
 
 /*
 ███    ██ ███████  ██████  ██   ██      ██
@@ -93,129 +82,140 @@ export function cleanNodeAndRelationships() {
 ██   ██ ██████  ██████
 */
 
+
+
+// 添加米饭之类的主食
 export function addMainPrinciple(principleChineseName, newUUID = uuid.v4()) {
   return run({
-    query: 'MERGE (n:PRINCIPLE :MAIN_PRINCIPLE {chineseName: {chineseName}}) ON CREATE SET n.uuid={uuid} RETURN n.uuid',
+    query: 'MERGE (n:PRINCIPLE :MAIN_PRINCIPLE {chineseName: {chineseName}}) ON CREATE SET n.uuid={uuid} RETURN n.uuid AS id',
     params: {
       chineseName: principleChineseName,
       uuid: newUUID,
     },
   })
   .then(results => {
-    if (results == NO_RESULT) {
-      return Promise.reject('No_UUID_RETURN in addMainPrinciple, maybe MERGE operation failed')
+    if (results === NO_RESULT) {
+      return Promise.reject('No_UUID_RETURN in addMainPrinciple, maybe MERGE operation failed');
     }
-    let addedUUID = results[0].get('n.uuid');
-    let newMainPrinciple = {
+    const addedUUID = results[0].get('id');
+    const newMainPrinciple = {
       id: addedUUID,
       principle: principleChineseName,
     };
     return newMainPrinciple;
-  })
+  });
 }
 
 
 
-
+// 添加肉丝之类的配菜
 export function addVicePrinciple(principleChineseName, newUUID = uuid.v4()) {
   return run({
-    query: 'MERGE (n:PRINCIPLE :VICE_PRINCIPLE {chineseName: {chineseName}}) ON CREATE SET n.uuid={uuid} RETURN n.uuid',
+    query: 'MERGE (n:PRINCIPLE :VICE_PRINCIPLE {chineseName: {chineseName}}) ON CREATE SET n.uuid={uuid} RETURN n.uuid AS id',
     params: {
       chineseName: principleChineseName,
       uuid: newUUID,
     },
   })
   .then(results => {
-    if (results == NO_RESULT) {
-      return Promise.reject('No_UUID_RETURN in addVicePrinciple, maybe MERGE operation failed')
+    if (results === NO_RESULT) {
+      return Promise.reject('No_UUID_RETURN in addVicePrinciple, maybe MERGE operation failed');
     }
-    let addedUUID = results[0].get('n.uuid');
-    let newMainPrinciple = {
+    const addedUUID = results[0].get('id');
+    const newMainPrinciple = {
       id: addedUUID,
       principle: principleChineseName,
     };
     return newMainPrinciple;
-  })
+  });
 }
 
 
-function addPlant(plantChineseName) {
-  let newUUID = uuid.v4();
+
+// 用户可能第二天还是用同一个名字登陆，所以第一次用这个名字和第二次用要有不一样的数据库操作
+export function addUser(userName, newUUID = uuid.v4()) {
   return run({
-    query: 'MERGE (n:PLANT {chineseName: {chineseName}, uuid: {uuid}}) RETURN n.uuid',
+    query: 'MERGE (u:USER {userName: {userName}}) ON CREATE SET u.uuid={uuid}, u.loginTrys=1 ON MATCH SET u.loginTrys=coalesce(u.loginTrys, 1)+1 SET u.lastLoginTime=toString(timestamp()) RETURN u.uuid AS id',
     params: {
-      chineseName: plantChineseName,
+      userName,
       uuid: newUUID,
     },
-  }).then(results => {
-    return new Promise(function (resolve, reject) {
-      if(results) {
-        let addedUUID = results[0]['n.uuid'];
-        let newPlant = {
-          id: addedUUID,
-          text: plantChineseName,
-        };
-        resolve(newPlant);
-      }
-      reject(null);
-    })
   })
+  .then(results => {
+    if (results === NO_RESULT) {
+      return Promise.reject('No_UUID_RETURN in addUser, maybe MERGE operation failed');
+    }
+    const addedUUID = results[0].get('id');
+    const newUser = {
+      id: addedUUID,
+      userName
+    };
+    return newUser;
+  });
 }
-//测试
-// addPlant('夹竹桃')
-// .then(result => console.log(result))
-// .catch(err => console.log(err));
 
 
-function letPlantHasFeature(plantUUID,  featureUUID) {
-  let newUUID = uuid.v4();
+
+// 用食材的 uuid 列表和用户的 uuid 添加一个订单， 先检查有没有 ActiveOrder 在排队
+export function addOrder(principleUUIDList, userUUID, newUUID = uuid.v4()) {
   return run({
-      query: 'MATCH (p:PLANT {uuid: {plantUUID}}), (f:FEATURE {uuid: {featureUUID}}) MERGE (p)-[r:HAS_FEATURE]->(f) ON CREATE SET r.uuid={relationshipUUID} RETURN r.uuid',
-      params: {
-        plantUUID: plantUUID,
-        featureUUID: featureUUID,
-        relationshipUUID: newUUID,
-      },
-  }).then(results => {
-    return new Promise(function (resolve, reject) {
-      if(results) {
-        let addedUUID = results[0]['r.uuid'];
-        resolve(addedUUID);
-      }
-      reject(null);
-    })
+    query: 'MATCH (u:USER {uuid: {userUUID}}) OPTIONAL MATCH (ao:ORDER) WHERE ao.finished=FALSE AND ao.canceled=FALSE MERGE (o:ORDER {uuid: {newUUID}, finished: FALSE, canceled: FALSE})-[r:ORDERED_BY]->(u) WITH o, count(ao) AS activeOrders SET o.startTime=toString(timestamp()), o.startedQueuePos=activeOrders+1 RETURN o.uuid AS id',
+    params: {
+      userUUID,
+      newUUID
+    }
   })
+  .then(results => results === NO_RESULT ? Promise.reject('No_UUID_RETURN in addOrder step MERGE new order, maybe MERGE operation failed') : results[0].get('id'))
+  .then(orderUUID => {
+    let promiseArray = [];
+    for(let principleUUID of principleUUIDList) {
+      promiseArray.push(
+        run({
+          query: 'MATCH (o:ORDER {uuid: {orderUUID}}), (p:PRINCIPLE {uuid: {principleUUID}}) CREATE (o)-[r:USE]->(p) RETURN p.uuid AS id',
+          params: {
+            orderUUID,
+            principleUUID
+          }
+        })
+      );
+    }
+    return Promise.all( promiseArray )
+      .then(results => results.map(result => result[0].get('id')));
+  });
 }
-//测试
-// letPlantHasFeature('50e2af0f-c4ac-419a-af24-551fc7c8320a', 'f4b07f87-7c86-412c-807e-677b5cf326ae')
-// .then(result => console.log(result))
-// .catch(err => console.log(err));
 
 
-function letPlantArrayHasFeature(plantArray, featureUUID) {
-  let promiseArray = [];
-  for(let plantUUID of plantArray) {
-    promiseArray.push( letPlantHasFeature(plantUUID, featureUUID) );
-  }
-  return Promise.all( promiseArray ).then( ()=>getRelationShip() )
+/*
+███████ ███████ ████████
+██      ██         ██
+███████ █████      ██
+     ██ ██         ██
+███████ ███████    ██
+*/
+
+
+export function setPriceOfPrinciple(principleUUID, price) {
+  return run({
+    query: 'MATCH (p:PRINCIPLE {uuid: {principleUUID}}) SET p.price={price} RETURN p.uuid AS id',
+    params: {
+      principleUUID,
+      price
+    }
+  })
+  .then(results => results[0].get('id'));
 }
-//测试
-// letPlantArrayHasFeature(['3d79fc0c-99ee-46d4-88cd-e3e23932a8dc', 'da7c49b7-14be-44df-a85c-f9eeb8c2837c'], 'fa95404c-df7e-4aa5-9b7b-1a22b71faf86')
-// .then( result => console.log('asdfasdf') );
 
 
-function letPlantHasFeatureArray(plantUUID, featureArray) {
-  let promiseArray = [];
-  for(let featureUUID of featureArray) {
-    promiseArray.push( letPlantHasFeature(plantUUID, featureUUID) );
-  }
-  return Promise.all( promiseArray ).then( ()=>getRelationShip() )
+
+export function updateOrderPrice(orderUUID) {
+  return run({
+    query: 'MATCH (o:ORDER {uuid: {orderUUID}}) SET o.price=0 WITH o MATCH (o)-->(p:PRINCIPLE) WITH o, p SET o.price=o.price+p.price RETURN o.price AS price',
+    params: {
+      orderUUID
+    }
+  })
+  .then(results => results.pop().get('price')); // 返回的是累加的过程，所以要取列表的最后一位，也就是计算的结果
 }
-//测试
-// letPlantHasFeatureArray('3d79fc0c-99ee-46d4-88cd-e3e23932a8dc', ['04beb8c8-9bbe-4e34-a2e8-814994c40841', 'fa95404c-df7e-4aa5-9b7b-1a22b71faf86'] )
-// .then( result => console.log('asdfasdf') );
-
-
 
 /*
  ██████  ███████ ████████
@@ -226,103 +226,81 @@ function letPlantHasFeatureArray(plantUUID, featureArray) {
 */
 
 
-
-
-function getDatabase() {
-  let promiseArray = [getPlant(), getFeature(), getRelationShip()];
-  return Promise.all( promiseArray )
-  .then( resultArray=>{
-    // 似乎 node 还不支持 Promise.resolve(value)
-    return new Promise(function (resolve, reject) {
-      resolve({
-        forPlant: resultArray[0],
-        forFeature: resultArray[1],
-        forRelationship: resultArray[2]
-      })
-    })
-  })
-  .catch(err => console.log(err));
-}
-// 测试
-// getDatabase()
-// .then( results => console.log(results))
-// .catch(err => console.log(err));
-
-
-function getPlant() {
+export function getActiveOrder() {
   return run({
-    query: 'MATCH (p:PLANT) RETURN p.uuid AS id, p.chineseName AS text',
-  }).then(results => {
-    return new Promise(function (resolve, reject) {
-      let forPlant = {
-        plantArray: [],
-        id: '42',
-      }
-      if(results) {
-        /*
-        [ { 'id': '50e2af0f-c4ac-419a-af24-551fc7c8320a',
-            'text': '侧柏' },
-          { 'id': '8b1bf568-277e-4a5b-9953-77e2dc9ff85d',
-            'text': 'bbb' } ]
-        */
-        forPlant.plantArray = results;
-        resolve(forPlant);
-      }
-      resolve(forPlant);
-    })
+    query: 'MATCH (o:ORDER {finished: FALSE, canceled: FALSE}) RETURN o.uuid AS id, o.startTime AS startTime ORDER BY startTime',
   })
+  .then(results => results.map(result => {
+    return {
+      id: result.get('id'),
+      startTime: result.get('startTime')
+    }
+  }));
 }
 
 
-function getFeature() {
+
+
+export function getOrderDetail(orderUUID) {
   return run({
-    query: 'MATCH (p:FEATURE) RETURN p.uuid AS id, p.chineseName AS text',
-  }).then(results => {
-    return new Promise(function (resolve, reject) {
-      let forFeature = {
-        featureArray: [],
-        id: '12',
-      }
-      if(results) {
-        /*
-        [ { 'id': '50e2af0f-c4ac-419a-af24-551fc7c8320a',
-            'text': '侧柏' },
-          { 'id': '8b1bf568-277e-4a5b-9953-77e2dc9ff85d',
-            'text': 'bbb' } ]
-        */
-        forFeature.featureArray = results;
-        resolve(forFeature);
-      }
-      resolve(forFeature);
-    })
+    query: 'MATCH (o:ORDER {uuid: {orderUUID}})-->(p:PRINCIPLE) RETURN o.price AS price, o.uuid AS orderUUID, p.chineseName AS name, p.uuid AS principleUUID',
+    params: {
+      orderUUID
+    }
   })
+  .then(results => {
+    let orederData = {principles: [], price: results[0].get('price'), id: results[0].get('orderUUID')};
+    results.map(result => {
+      orederData['principles'].push({
+        id: result.get('principleUUID'),
+        name: result.get('name')
+      });
+    });
+    return orederData;
+  });
 }
 
 
-function getRelationShip() {
+/*
+██████  ███████ ██      ███████ ████████ ███████
+██   ██ ██      ██      ██         ██    ██
+██   ██ █████   ██      █████      ██    █████
+██   ██ ██      ██      ██         ██    ██
+██████  ███████ ███████ ███████    ██    ███████
+*/
+
+
+export function deletePrincipleFromOrder(principleUUID, orderUUID) {
   return run({
-      query: 'MATCH (p:PLANT)-[r]->(f:FEATURE) RETURN {plant : {id: p.uuid, text: p.chineseName},id: r.uuid , feature: {id: f.uuid, text: f.chineseName} } AS result ORDER BY p.chineseName',
-  }).then(results => {
-    // [ { result:
-    //    { plant: [Object],
-    //      id: 'b2bbdf0a-8895-4603-86a9-7cb429bb8a2f',
-    //      feature: [Object] } },
-    // { result:
-    //    { plant: [Object],
-    //      id: 'a7841392-8798-4055-b72f-655da46a64f4',
-    //      feature: [Object] } } ]
-    return new Promise(function (resolve, reject) {
-      let forRelationship = {
-        relationshipArray: [],
-        id: '100',
-      };
-      if(results) {
-        for(let result of results) {
-          forRelationship.relationshipArray.push( result.result );
-        }
-        resolve(forRelationship);
-      }
-      resolve(forRelationship);
-    })
+    query: 'MATCH (o:ORDER {uuid: {orderUUID}})-[r]->(p:PRINCIPLE {uuid: {principleUUID}}) DELETE r RETURN o.uuid AS id',
+    params: {
+      principleUUID,
+      orderUUID
+    }
   })
+  .then(results => results === NO_RESULT ? Promise.reject(`NO_RESULT in deletePrincipleFromOrder, maybe relationship between principleUUID: ${principleUUID} and orderUUID: ${orderUUID} don\'t really exists, or you mistake order of args`) : results[0].get('id'));
+}
+
+
+export function cancelOrder(orderUUID) {
+  return run({
+    query: 'MATCH (o:ORDER {uuid: {orderUUID}}) SET o.canceled=TRUE, o.finished=TRUE RETURN o.uuid AS id',
+    params: {
+      orderUUID
+    }
+  })
+  .then(results => results === NO_RESULT ? Promise.reject('NO_RESULT in cancelOrder') : results[0].get('id'));
+}
+
+
+
+
+export function finishOrder(orderUUID) {
+  return run({
+    query: 'MATCH (o:ORDER {uuid: {orderUUID}}) SET o.finished=TRUE RETURN o.uuid AS id',
+    params: {
+      orderUUID
+    }
+  })
+  .then(results => results === NO_RESULT ? Promise.reject('NO_RESULT in cancelOrder') : results[0].get('id'));
 }
