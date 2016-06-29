@@ -30,161 +30,71 @@ import {
 } from 'graphql-relay';
 
 import {
-  getDatabase,
-  addPlant,
-  getPlant,
-  addFeature,
-  getFeature,
-  getRelationShip,
-  letPlantArrayHasFeature,
-  letPlantHasFeatureArray,
-} from './connect-neo4j';
+  addMainPrinciple,
+  addVicePrinciple,
+  addUser,
+  addOrder,
+  setPriceOfPrinciple,
+  updateOrderPrice,
+  getActiveOrder,
+  getOrderDetail,
+  deletePrincipleFromOrder,
+  cancelOrder,
+  finishOrder,
+  getPrinciple,
+  getPrincipleList
+} from '../../api/connect-neo4j'
 
 
 
-const PlantType = new GraphQLObjectType({
-  name: 'NameOfPlantType',
+const MainPrincipleType = new GraphQLObjectType({
+  name: 'mainPrinciple',
   fields: () => ({
     id: { type: GraphQLID },
-    text: { type: GraphQLString },
+    chineseName: { type: GraphQLString },
   }),
 });
 
-const PlantListType = new GraphQLObjectType({
-  name: 'NameOfPlantListType',
-  fields: () => ({
-    plantArray: { type: new GraphQLList(PlantType) },
-    id: { type: GraphQLString },
-  }),
-});
-
-
-const FeatureType = new GraphQLObjectType({
-  name: 'NameOfFeatureType',
+const VicePrincipleType = new GraphQLObjectType({
+  name: 'vicePrinciple',
   fields: () => ({
     id: { type: GraphQLID },
-    text: { type: GraphQLString },
+    chineseName: { type: GraphQLString },
   }),
 });
 
-const FeatureListType = new GraphQLObjectType({
-  name: 'NameOfFeatureListType',
+const OrderType = new GraphQLObjectType({
+  name: 'order',
   fields: () => ({
-    featureArray: { type: new GraphQLList(FeatureType) },
-    id: { type: GraphQLString },
-  }),
-});
-
-
-const RelationshipType = new GraphQLObjectType({
-  name: 'NameOfRelationshipType',
-  fields: () => ({
-    plant: { type: PlantType },
+    mainPrinciples: { type: new GraphQLList(MainPrincipleType) },
+    vicePrinciples: { type: new GraphQLList(VicePrincipleType) },
     id: { type: GraphQLID },
-    feature: { type: FeatureType },
+    price: { type: GraphQLFloat }
   }),
 });
 
-const RelationshipListType = new GraphQLObjectType({
-  name: 'NameOfRelationshipListType',
+const PrincipleListType = new GraphQLObjectType({
+  name: 'principleList',
   fields: () => ({
-    relationshipArray: { type: new GraphQLList(RelationshipType) },
-    id: { type: GraphQLString },
+    mainPrinciples: { type: new GraphQLList(MainPrincipleType) },
+    vicePrinciples: { type: new GraphQLList(VicePrincipleType) }
   }),
 });
 
-
-const TaoTaoType = new GraphQLObjectType({
-  name: 'NameOfTaoTaoType',
+const QueueType = new GraphQLObjectType({
+  name: 'queue',
   fields: () => ({
-    forPlant: { type: PlantListType },
-    forFeature: { type: FeatureListType },
-    forRelationship: { type: RelationshipListType },
-  }),
-});
-
-
-
-const MutationOfCreatePlant = mutationWithClientMutationId({
-  name: 'NameOfCreateNewPlantasdfasdf',
-  inputFields: {
-    text: { type: new GraphQLNonNull(GraphQLString) },
-  },
-  outputFields: {
-    plantListFromMutationOutputFields: {
-      type: PlantListType,
-      resolve: getPlant,
-    },
-  },
-  mutateAndGetPayload: ({ text }) => {
-    const newPlant = addPlant(text);
-    return newPlant;
-  },
-});
-
-
-const MutationOfCreateFeature = mutationWithClientMutationId({
-  name: 'NameOfCreateNewFeatureasdfasdf',
-  inputFields: {
-    text: { type: new GraphQLNonNull(GraphQLString) },
-  },
-  outputFields: {
-    featureListFromMutationOutputFields: {
-      type: FeatureListType,
-      resolve: getFeature,
-    },
-  },
-  mutateAndGetPayload: ({ text }) => {
-    const newFeature = addFeature(text);
-    return newFeature;
-  },
-});
-
-
-const MutationOfLetPlantArrayHasFeature = mutationWithClientMutationId({
-  name: 'NameOfMutationOfLetPlantArrayHasFeatureasdfasdf',
-  inputFields: {
-    plantUUIDArray: { type: new GraphQLList(GraphQLString) },
-    featureUUID: { type: new GraphQLNonNull(GraphQLString) },
-  },
-  outputFields: {
-    relationshipListFromMutationOutputFields: {
-      type: RelationshipListType,
-      resolve: getRelationShip,
-    },
-  },
-  mutateAndGetPayload: ({ plantUUIDArray, featureUUID }) => {
-    const relationships = letPlantArrayHasFeature(plantUUIDArray, featureUUID);
-    return relationships;
-  },
-});
-
-
-const MutationOfLetPlantHasFeatureArray = mutationWithClientMutationId({
-  name: 'NameOfMutationOfLetPlantHasFeatureArrayasdfasdf',
-  inputFields: {
-    plantUUID: { type: new GraphQLNonNull(GraphQLString) },
-    featureUUIDArray: { type: new GraphQLList(GraphQLString) },
-  },
-  outputFields: {
-    relationshipListFromMutationOutputFields: {
-      type: RelationshipListType,
-      resolve: getRelationShip,
-    },
-  },
-  mutateAndGetPayload: ({ plantUUID, featureUUIDArray }) => {
-    const relationships = letPlantHasFeatureArray(plantUUID, featureUUIDArray);
-    return relationships;
-  },
-});
+    queue: { type: new GraphQLList(OrderType) }
+  })
+})
 
 
 export const Schema = new GraphQLSchema({
   query: new GraphQLObjectType({
     name: 'QueryThatLigoudanWants',
     fields: () => ({
-      TaoTaoFIeld: {
-        type: TaoTaoType,
+      QueueField: {
+        type: QueueType,
         resolve: getDatabase,
       },
     }),

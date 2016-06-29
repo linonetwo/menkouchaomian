@@ -2,7 +2,22 @@ import chai from 'chai';
 const {expect, should, assert} = chai;
 
 import {cleanNodeAndRelationships, NO_RESULT} from '../../api/connect-neo4j'
-import {addMainPrinciple, addVicePrinciple, addUser, addOrder, setPriceOfPrinciple, updateOrderPrice, getActiveOrder, getOrderDetail, deletePrincipleFromOrder, cancelOrder, finishOrder} from '../../api/connect-neo4j'
+import {
+  addMainPrinciple,
+  addVicePrinciple,
+  addUser,
+  addOrder,
+  setPriceOfPrinciple,
+  updateOrderPrice,
+  getActiveOrder,
+  getOrderDetail,
+  deletePrincipleFromOrder,
+  cancelOrder,
+  finishOrder,
+  getPrinciple,
+  getPrincipleList,
+  getQueue
+} from '../../api/connect-neo4j'
 
 import config from '../../config';
 
@@ -170,15 +185,51 @@ describe('setPriceOfPrinciple() updateOrderPrice()', () => {
 
 
 
-describe('getOrderDetail()', () => {
+describe('getPrinciple()', () => {
   beforeEach(function() {
     return cleanNodeAndRelationships(run);
   });
 
-  it('add an order with 米饭 and 肉丝 and 鸡真 then return details', () => {
-    const uuid4User = uuid.v4();
-    const userName = '林一二';
+  it('add 肉丝 with price then get it by uuid', () => {
+    const uuid4VicePrinciple1 = uuid.v4();
+    const vicePrincipleChineseName1 = '肉丝';
 
+
+    return addVicePrinciple(vicePrincipleChineseName1, uuid4VicePrinciple1)
+    .then(result => setPriceOfPrinciple(result.id, 2.5))
+    .then(() => getPrinciple(uuid4VicePrinciple1))
+    .then(result => expect(result).to.be.deep.equal({
+      id: uuid4VicePrinciple1,
+      chineseName: vicePrincipleChineseName1,
+      price: 2.5
+    }))
+  });
+
+
+  it('add 肉丝 without price then get it by uuid, price should be NaN', () => {
+    const uuid4VicePrinciple1 = uuid.v4();
+    const vicePrincipleChineseName1 = '肉丝';
+
+
+    return addVicePrinciple(vicePrincipleChineseName1, uuid4VicePrinciple1)
+    .then(() => getPrinciple(uuid4VicePrinciple1))
+    .then(result => expect(result).to.be.deep.equal({
+      id: uuid4VicePrinciple1,
+      chineseName: vicePrincipleChineseName1,
+      price: NaN
+    }))
+  });
+});
+
+
+
+
+describe('getPrincipleList()', () => {
+  beforeEach(function() {
+    return cleanNodeAndRelationships(run);
+  });
+
+  it('add 米饭 and 肉丝 and 鸡真 then return them', () => {
     const uuid4MainPrinciple = uuid.v4();
     const mainPrincipleChineseName = '米饭';
     const uuid4VicePrinciple1 = uuid.v4();
@@ -186,26 +237,14 @@ describe('getOrderDetail()', () => {
     const uuid4VicePrinciple2 = uuid.v4();
     const vicePrincipleChineseName2 = '鸡真';
 
-    const uuid4Order = uuid.v4();
 
-
-    return addUser(userName, uuid4User)
-    .then(() => addMainPrinciple(mainPrincipleChineseName, uuid4MainPrinciple))
+    return addMainPrinciple(mainPrincipleChineseName, uuid4MainPrinciple)
     .then(result => setPriceOfPrinciple(result.id, 1))
     .then(() => addVicePrinciple(vicePrincipleChineseName1, uuid4VicePrinciple1))
     .then(result => setPriceOfPrinciple(result.id, 2.5))
     .then(() => addVicePrinciple(vicePrincipleChineseName2, uuid4VicePrinciple2))
-    .then(result => setPriceOfPrinciple(result.id, 3.0))
-    .then(() => addOrder([uuid4MainPrinciple, uuid4VicePrinciple1, uuid4VicePrinciple2], uuid4User, uuid4Order))
-    .then(() => updateOrderPrice(uuid4Order))
-    .then(price =>
-      getOrderDetail(uuid4Order)
-        .then(result => expect(result).to.be.deep.equal({
-          price,
-          id: uuid4Order,
-          principles: [{id:uuid4VicePrinciple2, name: vicePrincipleChineseName2}, {id:uuid4VicePrinciple1, name: vicePrincipleChineseName1}, {id: uuid4MainPrinciple, name: mainPrincipleChineseName}]
-        }))
-    )
+    .then(() => getPrincipleList(uuid4VicePrinciple1))
+    .then(result => expect(result).to.be.deep.equal({mainPrinciples: [{id: uuid4MainPrinciple, chineseName: mainPrincipleChineseName, price: 1}], vicePrinciples: [{id: uuid4VicePrinciple1, chineseName: vicePrincipleChineseName1, price: 2.5}, {id: uuid4VicePrinciple2, chineseName: vicePrincipleChineseName2, price: NaN}]}))
 
   });
 });
@@ -246,6 +285,61 @@ describe('getActiveOrder()', () => {
     .then(getActiveOrder)
     .then(results => results.map((result, index) => assert.propertyVal(result, 'id', [uuid4Order1, uuid4Order2][index]) ))
 
+  });
+});
+
+
+
+
+describe('getOrderDetail()', () => {
+  beforeEach(function() {
+    return cleanNodeAndRelationships(run);
+  });
+
+  it('add an order with 米饭 and 肉丝 and 鸡真 then get its detail', () => {
+    const uuid4User = uuid.v4();
+    const userName = '林一二';
+
+    const uuid4MainPrinciple = uuid.v4();
+    const mainPrincipleChineseName = '米饭';
+    const uuid4VicePrinciple1 = uuid.v4();
+    const vicePrincipleChineseName1 = '肉丝';
+    const uuid4VicePrinciple2 = uuid.v4();
+    const vicePrincipleChineseName2 = '鸡真';
+
+    const uuid4Order = uuid.v4();
+
+
+    return addUser(userName, uuid4User)
+    .then(() => addMainPrinciple(mainPrincipleChineseName, uuid4MainPrinciple))
+    .then(result => setPriceOfPrinciple(result.id, 1))
+    .then(() => addVicePrinciple(vicePrincipleChineseName1, uuid4VicePrinciple1))
+    .then(result => setPriceOfPrinciple(result.id, 2.5))
+    .then(() => addVicePrinciple(vicePrincipleChineseName2, uuid4VicePrinciple2))
+    .then(result => setPriceOfPrinciple(result.id, 3.0))
+    .then(() => addOrder([uuid4MainPrinciple, uuid4VicePrinciple1, uuid4VicePrinciple2], uuid4User, uuid4Order))
+    .then(() => updateOrderPrice(uuid4Order))
+    .then(() => getOrderDetail(uuid4Order))
+    .then(results => delete results['startTime'] && expect(results).to.be.deep.equal({
+      id: uuid4Order,
+      price: 1 + 2.5 + 3.0,
+      mainPrinciples: [
+        {
+          id: uuid4MainPrinciple,
+          chineseName: mainPrincipleChineseName
+        }
+      ],
+      vicePrinciples: [
+        {
+          id: uuid4VicePrinciple2,
+          chineseName: vicePrincipleChineseName2
+        },
+        {
+          id: uuid4VicePrinciple1,
+          chineseName: vicePrincipleChineseName1
+        }
+      ]
+    }))
   });
 });
 
