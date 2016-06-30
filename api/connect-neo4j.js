@@ -84,7 +84,12 @@ export function cleanNodeAndRelationships() {
 
 
 export function updateMetaData(ordinaryCookTime = 5, shopOpen = false, newUUID = uuid.v4()) {
-
+  return run({
+    query: 'MERGE (c:COOK :USER) ON CREATE SET c.uuid={uuid} RETURN c.uuid AS id',
+    params: {
+      uuid: newUUID,
+    },
+  })
 }
 
 // 添加米饭之类的主食
@@ -158,18 +163,20 @@ export function addUser(userName, newUUID = uuid.v4()) {
 }
 
 
+const getActiveOrderByUser = (userUUID, newUUID) => run({
+  query: 'MATCH (u:USER {uuid: {userUUID}}) OPTIONAL MATCH (ao:ORDER) WHERE ao.finished=FALSE AND ao.canceled=FALSE MERGE (o:ORDER {uuid: {newUUID}, finished: FALSE, paid: FALSE, canceled: FALSE})-[r:ORDERED_BY]->(u) WITH o, count(ao) AS activeOrders SET o.startTime=toString(timestamp()), o.startedQueuePos=activeOrders+1 RETURN o.uuid AS id',
+  params: {
+    userUUID,
+    newUUID
+  }
+});
 
-// 用食材的 uuid 列表和用户的 uuid 添加一个订单， 先检查有没有 ActiveOrder 在排队
+// 用食材的 uuid 列表和用户的 uuid 添加一个订单， 先检查有没有 ActiveOrder 在排队。 如果 results === NO_RESULT 就说明是老板下的单，得先给他创建一个 USER 账户
 export function addOrder(principleUUIDList, userUUID, newUUID = uuid.v4()) {
-  return run({
-    query: 'MATCH (u:USER {uuid: {userUUID}}) OPTIONAL MATCH (ao:ORDER) WHERE ao.finished=FALSE AND ao.canceled=FALSE MERGE (o:ORDER {uuid: {newUUID}, finished: FALSE, paid: FALSE, canceled: FALSE})-[r:ORDERED_BY]->(u) WITH o, count(ao) AS activeOrders SET o.startTime=toString(timestamp()), o.startedQueuePos=activeOrders+1 RETURN o.uuid AS id',
-    params: {
-      userUUID,
-      newUUID
-    }
-  })
-  .then(results => results === NO_RESULT ? Promise.reject('Error: No_UUID_RETURN in addOrder step MERGE new order, maybe MERGE operation failed') : results[0].get('id'))
+  return getActiveOrderByUser(userUUID, newUUID)
+  .then(results => results === NO_RESULT ? updateMetaData().then(results => getActiveOrderByUser(results[0].get('id'), newUUID)).then(results => results[0].get('id')) : results[0].get('id'))
   .then(orderUUID => {
+
     let promiseArray = [];
     for(let principleUUID of principleUUIDList) {
       promiseArray.push(
@@ -247,7 +254,7 @@ export function finishOrder(orderUUID) {
 
 export function paidOrder(orderUUID) {
   return run({
-    query: 'MATCH (o:ORDER {uuid: {orderUUID}}) SET o.finished=TRUE RETURN o.uuid AS id',
+    query: 'MATCH (o:ORDER {uuid: {orderUUID}}) SET o.paid=TRUE, o.finished=TRUE RETURN o.uuid AS id',
     params: {
       orderUUID
     }
@@ -278,9 +285,9 @@ export function usedUpPrinciple(principleUUID) {
 
 export function getActiveOrder() {
   return run({
-    query: 'MATCH (o:ORDER {finished: FALSE, canceled: FALSE}) RETURN o.uuid AS id, o.startTime AS startTime ORDER BY startTime',
+    query: 'MATCH (o:ORDER {paid: FALSE, canceled: FALSE}) RETURN o.uuid AS id, o.startTime AS startTime ORDER BY startTime',
   })
-  .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in getActiveOrder') : results)
+  .then(results => results === NO_RESULT ? [] : results)
   .then(results => results.map((result, index) => {
     return {
       id: result.get('id'),

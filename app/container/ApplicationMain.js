@@ -79,6 +79,8 @@ export default class ApplicationMain extends Component {
       newKindsOfPrinciple: '',
       newKindsOfPrinciplePrice: '',
       newKindsOfPrincipleIsMainPrinciple: false,
+      isSettingOrder: false,
+      orderToBeSet: {}
     };
   }
 
@@ -107,7 +109,7 @@ export default class ApplicationMain extends Component {
 
   _dependUser = (e) => {
     const userName = e.nativeEvent.text;
-    if (userName == 'aaa@aaa') {
+    if (userName == 'a') {
       this.setState({
         user: false
       })
@@ -189,10 +191,54 @@ export default class ApplicationMain extends Component {
   }
 
 
-  _handleSetOrder = (this, order) {
-    console.log(order);
+  _handleSetOrder = (order) => {
+    this.setState({isSettingOrder: true, orderToBeSet: order});
   }
 
+  _handleCookFinished = () => {
+    this.setState({isSettingOrder: false});
+    fetch(`${API_ROOT}/orderFinished`, {
+      'method': 'POST',
+      headers: new Headers({'Content-type': 'application/x-www-form-urlencoded', 'Accept': '*/*'}),
+      'mode': 'cors',
+      'body': `orderUUID=${this.state.orderToBeSet.id}`
+    })
+    .then((response) => {
+      return this._fetchAll();
+    })
+    .catch((err) => console.log(err))
+    .done();
+  }
+
+  _handleCookPaid = () => {
+    this.setState({isSettingOrder: false});
+    fetch(`${API_ROOT}/orderPaid`, {
+      'method': 'POST',
+      headers: new Headers({'Content-type': 'application/x-www-form-urlencoded', 'Accept': '*/*'}),
+      'mode': 'cors',
+      'body': `orderUUID=${this.state.orderToBeSet.id}`
+    })
+    .then((response) => {
+      return this._fetchAll();
+    })
+    .catch((err) => console.log(err))
+    .done();
+  }
+
+  _handleCookCanceled = () => {
+    this.setState({isSettingOrder: false});
+    fetch(`${API_ROOT}/orderCanceled`, {
+      'method': 'POST',
+      headers: new Headers({'Content-type': 'application/x-www-form-urlencoded', 'Accept': '*/*'}),
+      'mode': 'cors',
+      'body': `orderUUID=${this.state.orderToBeSet.id}`
+    })
+    .then((response) => {
+      return this._fetchAll();
+    })
+    .catch((err) => console.log(err))
+    .done();
+  }
 
   render() {
 
@@ -276,6 +322,37 @@ export default class ApplicationMain extends Component {
             </View>
           </View>
         </Modal>
+
+        <Modal
+          open={this.state.isSettingOrder}
+          modalDidClose={() => this.setState({isSettingOrder: false})}
+          offset={0}
+          overlayOpacity={0.75}
+          animationDuration={200}
+          animationTension={40}
+          closeOnTouchOutside={true}
+          style={styles.dialog}>
+          <View style={styles.setOrder}>
+            <Button
+              text={'炒完了'}
+              raised={true}
+              style={styles.setOrder_finished}
+              onPress={this._handleCookFinished}
+              />
+            <Button
+              text={'支付完了'}
+              raised={true}
+              style={styles.setOrder_paid}
+              onPress={this._handleCookPaid}
+              />
+            <Button
+              text={'取消这个订单'}
+              raised={true}
+              style={styles.setOrder_canceled}
+              onPress={this._handleCookCanceled}
+              />
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -315,5 +392,13 @@ var styles = StyleSheet.create({
   },
   isMainPrinciple_Switch: {
     marginTop: 2,
+  },
+  setOrder: {
+    flexDirection: 'column',
+    height: 250,
+    justifyContent: 'space-between'
+  },
+  setOrder_finished: {
+    padding: 15
   }
 });

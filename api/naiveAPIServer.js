@@ -14,9 +14,11 @@ import {
   deletePrincipleFromOrder,
   cancelOrder,
   finishOrder,
+  paidOrder,
   getPrinciple,
   getPrincipleList,
   getQueue,
+  usedUpPrinciple,
   getAll
 } from './connect-neo4j'
 
@@ -64,6 +66,21 @@ router.post('/submitNewKindOfPrinciple', async function(req, res) {
   }
 
   res.json({principleUUID: principleUUID});
+});
+
+router.post('/orderFinished', function(req, res) {
+  const id = req.body.orderUUID;
+  res.json({orderUUID: finishOrder(id)});
+});
+
+router.post('/orderPaid', function(req, res) {
+  const id = req.body.orderUUID;
+  res.json({orderUUID: paidOrder(id)});
+});
+
+router.post('/orderCanceled', function(req, res) {
+  const id = req.body.orderUUID;
+  res.json({orderUUID: cancelOrder(id)});
 });
 
 apiServer.use('/', router);

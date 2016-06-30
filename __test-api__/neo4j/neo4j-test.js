@@ -18,7 +18,8 @@ import {
   getPrinciple,
   getPrincipleList,
   getQueue,
-  usedUpPrinciple
+  usedUpPrinciple,
+  getAll
 } from '../../api/connect-neo4j'
 
 import config from '../../config';
@@ -329,6 +330,7 @@ describe('getOrderDetail()', () => {
       finished: false,
       canceled: false,
       paid: false,
+      ordinal: 0,
       userUUID: uuid4User,
       mainPrinciples: [
         {

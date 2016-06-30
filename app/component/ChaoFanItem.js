@@ -23,6 +23,7 @@ export default class ChaoFanItem extends Component {
           {!this.props.isUser ? <Button text={'三'} raised={true} onPress={this.props.setOrder.bind(this, this.props.order)} /> : <Text></Text> }
           {this.props.order.mainPrinciples.map(item => <Text style={styles.ChaoFanItem_mainPrinciple} key={item.id}> {item.chineseName} </Text>)}
           {this.props.order.vicePrinciples.map(item => <Text style={styles.ChaoFanItem_vicePrinciple} key={item.id}> {item.chineseName} </Text>)}
+          {this.props.order.finished ? <Text style={styles.ChaoFanItem_finished}>{this.props.isUser ? '炒完了下来拿' : '等待支付'}</Text> : <Text></Text>}
         </View>
       </View>
 
@@ -59,5 +60,11 @@ var styles = StyleSheet.create({
     padding: 3,
     marginRight: 3,
     backgroundColor: '#CCCCCC'
+  },
+  ChaoFanItem_finished: {
+    fontSize: 25,
+    padding: 3,
+    marginRight: 3,
+    backgroundColor: '#8BC34A'
   }
 });
