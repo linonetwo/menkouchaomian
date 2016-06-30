@@ -11,7 +11,8 @@ import {
   StyleSheet,
   Text,
   View,
-  ScrollView
+  ScrollView,
+  RefreshControl,
 } from 'react-native';
 
 import config from '../../config';
@@ -35,7 +36,9 @@ export default class ApplicationMain extends Component {
     super(props);
     this.state = {
       queue: [],
-      user: true
+      user: true,
+      loaded: false,
+      isRefreshing: false
     };
   }
 
@@ -46,13 +49,15 @@ export default class ApplicationMain extends Component {
 
 
   _fetchQueue = () => {
+    this.setState({isRefreshing: true});
     fetch(`${API_ROOT}/queue`)
       .then((response) => response.json())
       .then((responseData) => {
         this.setState({
-          queue: responseData.queue
+          queue: responseData.queue,
+          loaded: true,
+          isRefreshing: false
         });
-        console.log(responseData.queue[0]);
       })
       .catch((err) => {console.log(err);})
       .done();
@@ -66,9 +71,14 @@ export default class ApplicationMain extends Component {
         <Loginer />
         <ScrollView
           contentContainerStyle={styles.listView}
+          refreshControl={
+            <RefreshControl
+              refreshing={this.state.isRefreshing}
+              onRefresh={this._fetchQueue}
+              enable={true}
+            />}
           >
 
-            {this.state.queue.map(item => <ChaoFanItem order={item} key={item.id}/> )}
 
 
 
