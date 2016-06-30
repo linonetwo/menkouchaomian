@@ -16,7 +16,8 @@ import {
   finishOrder,
   getPrinciple,
   getPrincipleList,
-  getQueue
+  getQueue,
+  getAll
 } from './connect-neo4j'
 
 let apiServer = express();
@@ -29,8 +30,20 @@ apiServer.use(bodyParser.json());
 apiServer.use(require('express-promise')());
 
 let router = express.Router(); // get an instance of the express Router
-router.get('/queue', async function(req, res) {
-    res.json({queue: getQueue()});
+router.get('/all', function(req, res) {
+  res.json(getAll());
+});
+
+router.post('/login', function(req, res) {
+  let userName = req.body.userName;
+  res.json({userInfo: addUser(userName)});
+});
+
+router.post('/submitPrinciples', function(req, res) {
+  const principlesAdded = JSON.parse(req.body.principlesAdded);
+  const principleUUIDList = principlesAdded.map(item => item.id);
+  const userUUID = req.body.userUUID;
+  res.json({orderUUID: addOrder(principleUUIDList, userUUID)});
 });
 
 

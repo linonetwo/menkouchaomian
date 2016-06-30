@@ -244,21 +244,41 @@ export function getActiveOrder() {
 
 export function getOrderDetail(orderUUID) {
   return run({
-    query: 'MATCH (o:ORDER {uuid: {orderUUID}})-->(p:MAIN_PRINCIPLE) RETURN o.price AS price, o.uuid AS orderUUID, o.startTime AS startTime, p.chineseName AS chineseName, p.uuid AS principleUUID',
+    query: 'MATCH (u:USER)<--(o:ORDER {uuid: {orderUUID}}) RETURN o.price AS price, o.uuid AS orderUUID, o.startTime AS startTime, u.userName AS userName, u.uuid AS userUUID',
     params: {
       orderUUID
     }
   })
   .then(results => {
-    let orederData = {mainPrinciples: [], vicePrinciples: [], price: results[0].get('price') || NaN, startTime: results[0].get('startTime'), id: results[0].get('orderUUID')};
-    results.map(result => {
-      orederData['mainPrinciples'].push({
-        id: result.get('principleUUID'),
-        chineseName: result.get('chineseName')
-      });
-    });
+    let orederData = {
+      mainPrinciples: [],
+      vicePrinciples: [],
+      price: results[0].get('price') || NaN,
+      startTime: results[0].get('startTime'),
+      id: results[0].get('orderUUID'),
+      userName: results[0].get('userName'),
+      userUUID: results[0].get('userUUID')
+    };
     return orederData;
   })
+  .then(orederData => run({
+      query: 'MATCH (o:ORDER {uuid: {orderUUID}})-->(p:MAIN_PRINCIPLE) RETURN p.chineseName AS chineseName, p.uuid AS principleUUID',
+      params: {
+        orderUUID
+      }
+    })
+    .then(results => {
+      if (results !== NO_RESULT) {
+        results.map(result => {
+          orederData['vicePrinciples'].push({
+            id: result.get('principleUUID'),
+            chineseName: result.get('chineseName')
+          });
+        });
+      }
+      return orederData;
+    })
+  )
   .then(orederData => run({
       query: 'MATCH (o:ORDER {uuid: {orderUUID}})-->(p:VICE_PRINCIPLE) RETURN p.chineseName AS chineseName, p.uuid AS principleUUID',
       params: {
@@ -266,12 +286,14 @@ export function getOrderDetail(orderUUID) {
       }
     })
     .then(results => {
-      results.map(result => {
-        orederData['vicePrinciples'].push({
-          id: result.get('principleUUID'),
-          chineseName: result.get('chineseName')
+      if (results !== NO_RESULT) {
+        results.map(result => {
+          orederData['vicePrinciples'].push({
+            id: result.get('principleUUID'),
+            chineseName: result.get('chineseName')
+          });
         });
-      });
+      }
       return orederData;
     })
   );
@@ -285,6 +307,11 @@ export async function getQueue() {
   return await Promise.all(promises);
 }
 
+export async function getAll() {
+  let queue = await getQueue();
+  let principles = await getPrincipleList();
+  return {queue, principles}
+}
 
 
 

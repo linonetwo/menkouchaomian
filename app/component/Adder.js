@@ -15,34 +15,23 @@ import { Button, Card } from 'react-native-material-design';
 
 
 export default class Adder extends Component {
+
   render() {
     return (
       <View style={styles.adder}>
         <View
           style={{height: 300}}>
           <View style={styles.publisherButtons}>
-              <Button text="新料" primary={'paperGrey'} /> 
+              <Button text="新料" primary={'paperGrey'} onPress={this.props.addNewKindsOfPrinciples}/>
               {/*primary = ["googleBlue","googleGreen","googleGrey","googleRed","googleYellow","paperAmber","paperBlue","paperBlueGrey","paperBrown","paperCyan","paperDeepOrange","paperDeepPurple","paperGreen","paperGrey","paperIndigo","paperLightBlue","paperLightGreen","paperLime","paperOrange","paperPink","paperPurple","paperRed","paperTeal","paperYellow"]*/}
-              <Button text="提交" primary={'googleGreen'}/>
+              <Button text="提交" primary={'googleGreen'} onPress={this.props.submitPrinciples}/>
           </View>
           <ScrollView contentContainerStyle={styles.principles} >
             <View style={styles.principles_main}>
-              <Button text="加料" />
-              <Button text="OK" /><Button text="加料" />
-              <Button text="OK" /><Button text="加料" />
-              <Button text="加料" /><Button text="final" />
+              {this.props.principles.mainPrinciples.map(item => <Button text={item.chineseName} key={item.id} raised={this.props.principlesAdded.filter(usedItem => usedItem.id == item.id).length == 1} onPress={this.props.addPrinciple.bind(this, item)}/>)}
             </View>
             <View style={styles.principles_vice}>
-              <Button text="OK" /><Button text="加料" />
-              <Button text="OK" /><Button text="加料" />
-              <Button text="OK" /><Button text="加料" />
-              <Button text="OK" /><Button text="加料" />
-              <Button text="OK" /><Button text="加料" />
-              <Button text="OK" /><Button text="OK" /><Button text="加料" />
-              <Button text="OK" /><Button text="加料" />
-              <Button text="OK" /><Button text="加料" />
-              <Button text="OK" /><Button text="加料" /><Button text="OK" /><Button text="加料" />
-              <Button text="final" />
+              {this.props.principles.vicePrinciples.map(item => <Button text={item.chineseName} key={item.id} raised={this.props.principlesAdded.filter(usedItem => usedItem.id == item.id).length == 1} onPress={this.props.addPrinciple.bind(this, item)}/>)}
             </View>
           </ScrollView>
 

@@ -155,7 +155,7 @@ describe('setPriceOfPrinciple() updateOrderPrice()', () => {
     return cleanNodeAndRelationships(run);
   });
 
-  it('add an order with 米饭 and 肉丝 and 鸡真 then count how much', () => {
+  it.only('add an order with 米饭 and 肉丝 and 鸡真 then count how much', () => {
     const uuid4User = uuid.v4();
     const userName = '林一二';
 
@@ -296,7 +296,7 @@ describe('getOrderDetail()', () => {
     return cleanNodeAndRelationships(run);
   });
 
-  it.only('add an order with 米饭 and 肉丝 and 鸡真 then get its detail', () => {
+  it('add an order with 米饭 and 肉丝 and 鸡真 then get its detail', () => {
     const uuid4User = uuid.v4();
     const userName = '林一二';
 
@@ -323,6 +323,8 @@ describe('getOrderDetail()', () => {
     .then(results => delete results['startTime'] && expect(results).to.be.deep.equal({
       id: uuid4Order,
       price: 1 + 2.5 + 3.0,
+      userName,
+      userUUID: uuid4User,
       mainPrinciples: [
         {
           id: uuid4MainPrinciple,
