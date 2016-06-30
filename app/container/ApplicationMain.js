@@ -36,7 +36,7 @@ export default class ApplicationMain extends Component {
     super(props);
     this.state = {
       queue: [],
-      user: true,
+      user: undefined,
       loaded: false,
       isRefreshing: false
     };
@@ -63,12 +63,22 @@ export default class ApplicationMain extends Component {
       .done();
   }
 
+  _dependUser = (e) => {
+    const text = e.nativeEvent.text;
+    if (text == 'aaa@aaa') {
+      this.setState({
+        user: false
+      })
+    }
+    console.log(text);
+  }
 
   render() {
 
     return (
       <View style={styles.container}>
-        <Loginer />
+        {/*在未获得登录信息的时候显示登录框*/}
+        {this.state.user == undefined ? <Loginer handleInput={this._dependUser}/> : <Text></Text> }
         <ScrollView
           contentContainerStyle={styles.listView}
           refreshControl={
@@ -79,11 +89,13 @@ export default class ApplicationMain extends Component {
             />}
           >
 
+            {/*如果是 user 就不让他们看到整个列表，只让炒面大叔看到*/}
+            {this.state.user == false ?  this.state.queue.map(item => <ChaoFanItem order={item} key={item.id}/> ) : <Text></Text> }
 
 
 
         </ScrollView>
-        <Adder />
+        {this.state.user !== undefined ? <Adder /> : <Text>@linonetwo createdBy♥andHunger Using ReactNative </Text> }
       </View>
     );
   }

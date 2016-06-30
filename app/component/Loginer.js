@@ -30,7 +30,9 @@ export default class Loginer extends Component {
   render() {
     return (
       <View style={styles.Loginer}>
-        <TextInput />
+        <TextInput
+          onSubmitEditing={this.props.handleInput}
+        />
       </View>
     )
   }
