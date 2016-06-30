@@ -189,6 +189,11 @@ export default class ApplicationMain extends Component {
   }
 
 
+  _handleSetOrder = (this, order) {
+    console.log(order);
+  }
+
+
   render() {
 
     return (
@@ -211,11 +216,11 @@ export default class ApplicationMain extends Component {
             {
               this.state.user == false
               ?
-              this.state.queue.map(item => <ChaoFanItem order={item} key={item.id}/> )
+              this.state.queue.map(item => <ChaoFanItem order={item} key={item.id} isUser={this.state.user} setOrder={this._handleSetOrder}/> )
               :
               this.state.queue
                 .filter(item => item.userUUID == this.state.userUUID, this)
-                .map(item => <ChaoFanItem order={item} key={item.id}/> )
+                .map(item => <ChaoFanItem order={item} key={item.id} isUser={this.state.user}/> )
             }
 
 
@@ -259,7 +264,7 @@ export default class ApplicationMain extends Component {
                 rippleColor="rgba(255,152,0,.2)"
                 onCheckedChange={(e) => this.setState({newKindsOfPrincipleIsMainPrinciple: e.checked})}
                 />
-                <Text style={styles.isMainPrinciple_Text} >这是主食</Text>
+              <Text style={styles.isMainPrinciple_Text} >这是主食</Text>
             </View>
             <View>
               <Button
@@ -309,7 +314,6 @@ var styles = StyleSheet.create({
     textAlignVertical: 'center'
   },
   isMainPrinciple_Switch: {
-    marginTop: 7,
-    marginBottom: 7,
+    marginTop: 2,
   }
 });
