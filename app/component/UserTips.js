@@ -8,7 +8,7 @@ import {
   Text
 } from 'react-native';
 
-export default class UserQueue extends Component {
+export default class UserTips extends Component {
   render() {
     return (
       <View style={styles.loginedTip}>

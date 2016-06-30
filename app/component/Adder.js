@@ -11,7 +11,7 @@ import {
   ScrollView
 } from 'react-native';
 
-import { Button, Card } from 'react-native-material-design';
+import { Button } from 'react-native-material-design';
 
 
 export default class Adder extends Component {
@@ -22,7 +22,7 @@ export default class Adder extends Component {
         <View
           style={{height: 300}}>
           <View style={styles.publisherButtons}>
-              <Button text="新料" primary={'paperGrey'} onPress={this.props.addNewKindsOfPrinciples}/>
+              <Button text="此处无欲加之料" primary={'paperGrey'} onPress={this.props.addNewKindsOfPrinciples}/>
               {/*primary = ["googleBlue","googleGreen","googleGrey","googleRed","googleYellow","paperAmber","paperBlue","paperBlueGrey","paperBrown","paperCyan","paperDeepOrange","paperDeepPurple","paperGreen","paperGrey","paperIndigo","paperLightBlue","paperLightGreen","paperLime","paperOrange","paperPink","paperPurple","paperRed","paperTeal","paperYellow"]*/}
               <Button text="提交" primary={'googleGreen'} onPress={this.props.submitPrinciples}/>
           </View>

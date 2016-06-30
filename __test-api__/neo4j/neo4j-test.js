@@ -14,9 +14,11 @@ import {
   deletePrincipleFromOrder,
   cancelOrder,
   finishOrder,
+  paidOrder,
   getPrinciple,
   getPrincipleList,
-  getQueue
+  getQueue,
+  usedUpPrinciple
 } from '../../api/connect-neo4j'
 
 import config from '../../config';
@@ -155,7 +157,7 @@ describe('setPriceOfPrinciple() updateOrderPrice()', () => {
     return cleanNodeAndRelationships(run);
   });
 
-  it.only('add an order with 米饭 and 肉丝 and 鸡真 then count how much', () => {
+  it('add an order with 米饭 and 肉丝 and 鸡真 then count how much', () => {
     const uuid4User = uuid.v4();
     const userName = '林一二';
 
@@ -296,7 +298,7 @@ describe('getOrderDetail()', () => {
     return cleanNodeAndRelationships(run);
   });
 
-  it('add an order with 米饭 and 肉丝 and 鸡真 then get its detail', () => {
+  it.only('add an order with 米饭 and 肉丝 and 鸡真 then get its detail', () => {
     const uuid4User = uuid.v4();
     const userName = '林一二';
 
@@ -324,6 +326,9 @@ describe('getOrderDetail()', () => {
       id: uuid4Order,
       price: 1 + 2.5 + 3.0,
       userName,
+      finished: false,
+      canceled: false,
+      paid: false,
       userUUID: uuid4User,
       mainPrinciples: [
         {
@@ -428,5 +433,50 @@ describe('finishOrder()', () => {
     .then(() => addOrder([uuid4MainPrinciple, uuid4VicePrinciple], uuid4User, uuid4Order))
     .then(() => finishOrder(uuid4Order))
     .then(result => expect(result).to.be.equal(uuid4Order))
+  });
+});
+
+
+
+
+describe('paidOrder()', () => {
+  beforeEach(function() {
+    return cleanNodeAndRelationships(run);
+  });
+
+  it('add an order then finish it', () => {
+    const uuid4User = uuid.v4();
+    const userName = '林一二';
+    const uuid4MainPrinciple = uuid.v4();
+    const mainPrincipleChineseName = '米饭';
+    const uuid4VicePrinciple = uuid.v4();
+    const vicePrincipleChineseName = '肉丝';
+    const uuid4Order = uuid.v4();
+
+
+    return addUser(userName, uuid4User)
+    .then(() => addMainPrinciple(mainPrincipleChineseName, uuid4MainPrinciple))
+    .then(() => addVicePrinciple(vicePrincipleChineseName, uuid4VicePrinciple))
+    .then(() => addOrder([uuid4MainPrinciple, uuid4VicePrinciple], uuid4User, uuid4Order))
+    .then(() => paidOrder(uuid4Order))
+    .then(result => expect(result).to.be.equal(uuid4Order))
+  });
+});
+
+
+describe('usedUpPrinciple()', () => {
+  beforeEach(function() {
+    return cleanNodeAndRelationships(run);
+  });
+
+  it('add an order then finish it', () => {
+    const uuid4VicePrinciple = uuid.v4();
+    const vicePrincipleChineseName = '肉丝';
+
+
+    return addUser(userName, uuid4User)
+    .then(() => addVicePrinciple(vicePrincipleChineseName, uuid4VicePrinciple))
+    .then(() => usedUpPrinciple(uuid4VicePrinciple))
+    .then(result => expect(result).to.be.equal(uuid4VicePrinciple))
   });
 });

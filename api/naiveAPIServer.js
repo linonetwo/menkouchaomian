@@ -46,6 +46,25 @@ router.post('/submitPrinciples', function(req, res) {
   res.json({orderUUID: addOrder(principleUUIDList, userUUID)});
 });
 
+router.post('/submitNewKindOfPrinciple', async function(req, res) {
+  const principleToAdd = req.body.newKindOfPrincipleAdded;
+  const price = Number(req.body.price);
+  const isMainPrinciple = req.body.isMainPrinciple == 'true';
+
+
+  let addedResult;
+  if (isMainPrinciple) {
+    addedResult = await addMainPrinciple(principleToAdd);
+  } else {
+    addedResult = await addVicePrinciple(principleToAdd);
+  }
+
+  if (price > 0) { // NaN > 0 is false
+    const principleUUID = await setPriceOfPrinciple(addedResult.id, price);
+  }
+
+  res.json({principleUUID: principleUUID});
+});
 
 apiServer.use('/', router);
 

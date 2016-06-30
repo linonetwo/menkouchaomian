@@ -83,11 +83,14 @@ export function cleanNodeAndRelationships() {
 */
 
 
+export function updateMetaData(ordinaryCookTime = 5, shopOpen = false, newUUID = uuid.v4()) {
+
+}
 
 // 添加米饭之类的主食
 export function addMainPrinciple(principleChineseName, newUUID = uuid.v4()) {
   return run({
-    query: 'MERGE (n:PRINCIPLE :MAIN_PRINCIPLE {chineseName: {chineseName}}) ON CREATE SET n.uuid={uuid} RETURN n.uuid AS id',
+    query: 'MERGE (n:PRINCIPLE :MAIN_PRINCIPLE {chineseName: {chineseName}}) ON CREATE SET n.uuid={uuid}, n.usedUp=FALSE RETURN n.uuid AS id',
     params: {
       chineseName: principleChineseName,
       uuid: newUUID,
@@ -111,7 +114,7 @@ export function addMainPrinciple(principleChineseName, newUUID = uuid.v4()) {
 // 添加肉丝之类的配菜
 export function addVicePrinciple(principleChineseName, newUUID = uuid.v4()) {
   return run({
-    query: 'MERGE (n:PRINCIPLE :VICE_PRINCIPLE {chineseName: {chineseName}}) ON CREATE SET n.uuid={uuid} RETURN n.uuid AS id',
+    query: 'MERGE (n:PRINCIPLE :VICE_PRINCIPLE {chineseName: {chineseName}}) ON CREATE SET n.uuid={uuid}, n.usedUp=FALSE RETURN n.uuid AS id',
     params: {
       chineseName: principleChineseName,
       uuid: newUUID,
@@ -159,7 +162,7 @@ export function addUser(userName, newUUID = uuid.v4()) {
 // 用食材的 uuid 列表和用户的 uuid 添加一个订单， 先检查有没有 ActiveOrder 在排队
 export function addOrder(principleUUIDList, userUUID, newUUID = uuid.v4()) {
   return run({
-    query: 'MATCH (u:USER {uuid: {userUUID}}) OPTIONAL MATCH (ao:ORDER) WHERE ao.finished=FALSE AND ao.canceled=FALSE MERGE (o:ORDER {uuid: {newUUID}, finished: FALSE, canceled: FALSE})-[r:ORDERED_BY]->(u) WITH o, count(ao) AS activeOrders SET o.startTime=toString(timestamp()), o.startedQueuePos=activeOrders+1 RETURN o.uuid AS id',
+    query: 'MATCH (u:USER {uuid: {userUUID}}) OPTIONAL MATCH (ao:ORDER) WHERE ao.finished=FALSE AND ao.canceled=FALSE MERGE (o:ORDER {uuid: {newUUID}, finished: FALSE, paid: FALSE, canceled: FALSE})-[r:ORDERED_BY]->(u) WITH o, count(ao) AS activeOrders SET o.startTime=toString(timestamp()), o.startedQueuePos=activeOrders+1 RETURN o.uuid AS id',
     params: {
       userUUID,
       newUUID
@@ -217,6 +220,53 @@ export function updateOrderPrice(orderUUID) {
   .then(results => results.pop().get('price')); // 返回的是累加的过程，所以要取列表的最后一位，也就是计算的结果
 }
 
+
+export function cancelOrder(orderUUID) {
+  return run({
+    query: 'MATCH (o:ORDER {uuid: {orderUUID}}) SET o.canceled=TRUE, o.finished=TRUE RETURN o.uuid AS id',
+    params: {
+      orderUUID
+    }
+  })
+  .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in cancelOrder') : results[0].get('id'));
+}
+
+
+
+
+export function finishOrder(orderUUID) {
+  return run({
+    query: 'MATCH (o:ORDER {uuid: {orderUUID}}) SET o.finished=TRUE RETURN o.uuid AS id',
+    params: {
+      orderUUID
+    }
+  })
+  .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in cancelOrder') : results[0].get('id'));
+}
+
+
+export function paidOrder(orderUUID) {
+  return run({
+    query: 'MATCH (o:ORDER {uuid: {orderUUID}}) SET o.finished=TRUE RETURN o.uuid AS id',
+    params: {
+      orderUUID
+    }
+  })
+  .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in paidOrder') : results[0].get('id'));
+}
+
+
+export function usedUpPrinciple(principleUUID) {
+  return run({
+    query: 'MATCH (p:PRINCIPLE {uuid: {principleUUID}}) SET p.usedUp=TRUE RETURN o.uuid AS id',
+    params: {
+      principleUUID
+    }
+  })
+  .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in usedUpPrinciple') : results[0].get('id'));
+}
+
+
 /*
  ██████  ███████ ████████
 ██       ██         ██
@@ -231,9 +281,10 @@ export function getActiveOrder() {
     query: 'MATCH (o:ORDER {finished: FALSE, canceled: FALSE}) RETURN o.uuid AS id, o.startTime AS startTime ORDER BY startTime',
   })
   .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in getActiveOrder') : results)
-  .then(results => results.map(result => {
+  .then(results => results.map((result, index) => {
     return {
       id: result.get('id'),
+      ordinal: index,
       startTime: result.get('startTime')
     }
   }));
@@ -242,60 +293,65 @@ export function getActiveOrder() {
 
 
 
-export function getOrderDetail(orderUUID) {
-  return run({
-    query: 'MATCH (u:USER)<--(o:ORDER {uuid: {orderUUID}}) RETURN o.price AS price, o.uuid AS orderUUID, o.startTime AS startTime, u.userName AS userName, u.uuid AS userUUID',
-    params: {
-      orderUUID
-    }
-  })
-  .then(results => {
-    let orederData = {
-      mainPrinciples: [],
-      vicePrinciples: [],
-      price: results[0].get('price') || NaN,
-      startTime: results[0].get('startTime'),
-      id: results[0].get('orderUUID'),
-      userName: results[0].get('userName'),
-      userUUID: results[0].get('userUUID')
-    };
-    return orederData;
-  })
-  .then(orederData => run({
-      query: 'MATCH (o:ORDER {uuid: {orderUUID}})-->(p:MAIN_PRINCIPLE) RETURN p.chineseName AS chineseName, p.uuid AS principleUUID',
+export function getOrderDetail(orderUUID, ordinal = 0) {
+  return updateOrderPrice(orderUUID)
+    .then(() => run({
+      query: 'MATCH (u:USER)<--(o:ORDER {uuid: {orderUUID}}) RETURN o.price AS price, o.uuid AS orderUUID, o.startTime AS startTime, o.finished AS finished, o.canceled AS canceled, o.paid AS paid, u.userName AS userName, u.uuid AS userUUID',
       params: {
         orderUUID
       }
-    })
+    }))
     .then(results => {
-      if (results !== NO_RESULT) {
-        results.map(result => {
-          orederData['vicePrinciples'].push({
-            id: result.get('principleUUID'),
-            chineseName: result.get('chineseName')
-          });
-        });
-      }
+      let orederData = {
+        mainPrinciples: [],
+        vicePrinciples: [],
+        ordinal,
+        price: results[0].get('price') || NaN,
+        finished: results[0].get('finished'),
+        canceled: results[0].get('canceled'),
+        paid: results[0].get('paid'),
+        startTime: results[0].get('startTime'),
+        id: results[0].get('orderUUID'),
+        userName: results[0].get('userName'),
+        userUUID: results[0].get('userUUID')
+      };
       return orederData;
     })
-  )
-  .then(orederData => run({
-      query: 'MATCH (o:ORDER {uuid: {orderUUID}})-->(p:VICE_PRINCIPLE) RETURN p.chineseName AS chineseName, p.uuid AS principleUUID',
-      params: {
-        orderUUID
-      }
-    })
-    .then(results => {
-      if (results !== NO_RESULT) {
-        results.map(result => {
-          orederData['vicePrinciples'].push({
-            id: result.get('principleUUID'),
-            chineseName: result.get('chineseName')
+    .then(orederData => run({
+        query: 'MATCH (o:ORDER {uuid: {orderUUID}})-->(p:MAIN_PRINCIPLE) RETURN p.chineseName AS chineseName, p.uuid AS principleUUID',
+        params: {
+          orderUUID
+        }
+      })
+      .then(results => {
+        if (results !== NO_RESULT) {
+          results.map(result => {
+            orederData['mainPrinciples'].push({
+              id: result.get('principleUUID'),
+              chineseName: result.get('chineseName')
+            });
           });
-        });
-      }
-      return orederData;
-    })
+        }
+        return orederData;
+      })
+    )
+    .then(orederData => run({
+        query: 'MATCH (o:ORDER {uuid: {orderUUID}})-->(p:VICE_PRINCIPLE) RETURN p.chineseName AS chineseName, p.uuid AS principleUUID',
+        params: {
+          orderUUID
+        }
+      })
+      .then(results => {
+        if (results !== NO_RESULT) {
+          results.map(result => {
+            orederData['vicePrinciples'].push({
+              id: result.get('principleUUID'),
+              chineseName: result.get('chineseName')
+            });
+          });
+        }
+        return orederData;
+      })
   );
 }
 
@@ -303,7 +359,7 @@ export function getOrderDetail(orderUUID) {
 
 
 export async function getQueue() {
-  let promises = await getActiveOrder().then(results => results.map(result => getOrderDetail(result.id)));
+  let promises = await getActiveOrder().then(results => results.map(result => getOrderDetail(result.id, result.ordinal)));
   return await Promise.all(promises);
 }
 
@@ -317,7 +373,7 @@ export async function getAll() {
 
 export function getPrinciple(principleUUID) {
   return run({
-    query: 'MATCH (p:PRINCIPLE {uuid: {principleUUID}}) RETURN p.chineseName AS chineseName, p.price AS price',
+    query: 'MATCH (p:PRINCIPLE {uuid: {principleUUID}}) RETURN p.chineseName AS chineseName, p.price AS price, p.usedUp AS usedUp',
     params: {
       principleUUID
     }
@@ -326,6 +382,7 @@ export function getPrinciple(principleUUID) {
     return {
       id: principleUUID,
       chineseName: results[0].get('chineseName'),
+      usedUp: results[0].get('usedUp'),
       price: results[0].get('price') || NaN
     }
   });
@@ -383,28 +440,4 @@ export function deletePrincipleFromOrder(principleUUID, orderUUID) {
     }
   })
   .then(results => results === NO_RESULT ? Promise.reject(`NO_RESULT in deletePrincipleFromOrder, maybe relationship between principleUUID: ${principleUUID} and orderUUID: ${orderUUID} don\'t really exists, or you mistake order of args`) : results[0].get('id'));
-}
-
-
-export function cancelOrder(orderUUID) {
-  return run({
-    query: 'MATCH (o:ORDER {uuid: {orderUUID}}) SET o.canceled=TRUE, o.finished=TRUE RETURN o.uuid AS id',
-    params: {
-      orderUUID
-    }
-  })
-  .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in cancelOrder') : results[0].get('id'));
-}
-
-
-
-
-export function finishOrder(orderUUID) {
-  return run({
-    query: 'MATCH (o:ORDER {uuid: {orderUUID}}) SET o.finished=TRUE RETURN o.uuid AS id',
-    params: {
-      orderUUID
-    }
-  })
-  .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in cancelOrder') : results[0].get('id'));
 }
