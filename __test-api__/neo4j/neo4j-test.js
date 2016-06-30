@@ -296,7 +296,7 @@ describe('getOrderDetail()', () => {
     return cleanNodeAndRelationships(run);
   });
 
-  it('add an order with 米饭 and 肉丝 and 鸡真 then get its detail', () => {
+  it.only('add an order with 米饭 and 肉丝 and 鸡真 then get its detail', () => {
     const uuid4User = uuid.v4();
     const userName = '林一二';
 
@@ -410,7 +410,7 @@ describe('finishOrder()', () => {
     return cleanNodeAndRelationships(run);
   });
 
-  it('add an order then cancel it', () => {
+  it('add an order then finish it', () => {
     const uuid4User = uuid.v4();
     const userName = '林一二';
     const uuid4MainPrinciple = uuid.v4();

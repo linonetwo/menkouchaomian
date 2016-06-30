@@ -95,7 +95,7 @@ export function addMainPrinciple(principleChineseName, newUUID = uuid.v4()) {
   })
   .then(results => {
     if (results === NO_RESULT) {
-      return Promise.reject('No_UUID_RETURN in addMainPrinciple, maybe MERGE operation failed');
+      return Promise.reject('Error: No_UUID_RETURN in addMainPrinciple, maybe MERGE operation failed');
     }
     const addedUUID = results[0].get('id');
     const newMainPrinciple = {
@@ -119,7 +119,7 @@ export function addVicePrinciple(principleChineseName, newUUID = uuid.v4()) {
   })
   .then(results => {
     if (results === NO_RESULT) {
-      return Promise.reject('No_UUID_RETURN in addVicePrinciple, maybe MERGE operation failed');
+      return Promise.reject('Error: No_UUID_RETURN in addVicePrinciple, maybe MERGE operation failed');
     }
     const addedUUID = results[0].get('id');
     const newMainPrinciple = {
@@ -143,7 +143,7 @@ export function addUser(userName, newUUID = uuid.v4()) {
   })
   .then(results => {
     if (results === NO_RESULT) {
-      return Promise.reject('No_UUID_RETURN in addUser, maybe MERGE operation failed');
+      return Promise.reject('Error: No_UUID_RETURN in addUser, maybe MERGE operation failed');
     }
     const addedUUID = results[0].get('id');
     const newUser = {
@@ -165,7 +165,7 @@ export function addOrder(principleUUIDList, userUUID, newUUID = uuid.v4()) {
       newUUID
     }
   })
-  .then(results => results === NO_RESULT ? Promise.reject('No_UUID_RETURN in addOrder step MERGE new order, maybe MERGE operation failed') : results[0].get('id'))
+  .then(results => results === NO_RESULT ? Promise.reject('Error: No_UUID_RETURN in addOrder step MERGE new order, maybe MERGE operation failed') : results[0].get('id'))
   .then(orderUUID => {
     let promiseArray = [];
     for(let principleUUID of principleUUIDList) {
@@ -230,6 +230,7 @@ export function getActiveOrder() {
   return run({
     query: 'MATCH (o:ORDER {finished: FALSE, canceled: FALSE}) RETURN o.uuid AS id, o.startTime AS startTime ORDER BY startTime',
   })
+  .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in getActiveOrder') : results)
   .then(results => results.map(result => {
     return {
       id: result.get('id'),
@@ -365,7 +366,7 @@ export function cancelOrder(orderUUID) {
       orderUUID
     }
   })
-  .then(results => results === NO_RESULT ? Promise.reject('NO_RESULT in cancelOrder') : results[0].get('id'));
+  .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in cancelOrder') : results[0].get('id'));
 }
 
 
@@ -378,5 +379,5 @@ export function finishOrder(orderUUID) {
       orderUUID
     }
   })
-  .then(results => results === NO_RESULT ? Promise.reject('NO_RESULT in cancelOrder') : results[0].get('id'));
+  .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in cancelOrder') : results[0].get('id'));
 }

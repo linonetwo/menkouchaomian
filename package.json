@@ -26,8 +26,10 @@
   "dependencies": {
     "babel-register": "^6.9.0",
     "babel-relay-plugin": "^0.9.1",
+    "body-parser": "^1.15.2",
     "express": "^4.14.0",
     "express-graphql": "^0.5.3",
+    "express-promise": "^0.4.0",
     "graphql": "^0.6.0",
     "graphql-relay": "^0.4.2",
     "neo4j-driver": "^1.0.2",
@@ -35,8 +37,9 @@
     "react-native": "^0.27.0-rc2",
     "react-native-animatable": "^0.6.1",
     "react-native-collapsible": "^0.6.0",
-    "react-native-dialogs": "0.0.15",
     "react-native-drop-refresh": "^2.1.0",
+    "react-native-material-design": "^0.3.6",
+    "react-native-material-kit": "^0.3.2",
     "react-native-simple-modal": "^3.0.4",
     "react-relay": "^0.9.1",
     "utility": "^1.8.0"

@@ -1,94 +1,29 @@
 schema {
-  query: QueryThatLigoudanWants
-  mutation: aaa
+  query: QueryOfQueue
 }
 
-type aaa {
-  createPlantField(input: NameOfCreateNewPlantasdfasdfInput!): NameOfCreateNewPlantasdfasdfPayload
-  createFeatureField(input: NameOfCreateNewFeatureasdfasdfInput!): NameOfCreateNewFeatureasdfasdfPayload
-  LetPlantArrayHasFeatureField(input: NameOfMutationOfLetPlantArrayHasFeatureasdfasdfInput!): NameOfMutationOfLetPlantArrayHasFeatureasdfasdfPayload
-  LetPlantHasFeatureArrayField(input: NameOfMutationOfLetPlantHasFeatureArrayasdfasdfInput!): NameOfMutationOfLetPlantHasFeatureArrayasdfasdfPayload
-}
-
-input NameOfCreateNewFeatureasdfasdfInput {
-  text: String!
-  clientMutationId: String!
-}
-
-type NameOfCreateNewFeatureasdfasdfPayload {
-  featureListFromMutationOutputFields: NameOfFeatureListType
-  clientMutationId: String!
-}
-
-input NameOfCreateNewPlantasdfasdfInput {
-  text: String!
-  clientMutationId: String!
-}
-
-type NameOfCreateNewPlantasdfasdfPayload {
-  plantListFromMutationOutputFields: NameOfPlantListType
-  clientMutationId: String!
-}
-
-type NameOfFeatureListType {
-  featureArray: [NameOfFeatureType]
-  id: String
-}
-
-type NameOfFeatureType {
+type mainPrinciple {
   id: ID
-  text: String
+  chineseName: String
 }
 
-input NameOfMutationOfLetPlantArrayHasFeatureasdfasdfInput {
-  plantUUIDArray: [String]
-  featureUUID: String!
-  clientMutationId: String!
-}
-
-type NameOfMutationOfLetPlantArrayHasFeatureasdfasdfPayload {
-  relationshipListFromMutationOutputFields: NameOfRelationshipListType
-  clientMutationId: String!
-}
-
-input NameOfMutationOfLetPlantHasFeatureArrayasdfasdfInput {
-  plantUUID: String!
-  featureUUIDArray: [String]
-  clientMutationId: String!
-}
-
-type NameOfMutationOfLetPlantHasFeatureArrayasdfasdfPayload {
-  relationshipListFromMutationOutputFields: NameOfRelationshipListType
-  clientMutationId: String!
-}
-
-type NameOfPlantListType {
-  plantArray: [NameOfPlantType]
-  id: String
-}
-
-type NameOfPlantType {
+type order {
+  mainPrinciples: [mainPrinciple]
+  vicePrinciples: [vicePrinciple]
   id: ID
-  text: String
+  price: Float
+  startTime: String
 }
 
-type NameOfRelationshipListType {
-  relationshipArray: [NameOfRelationshipType]
-  id: String
+type QueryOfQueue {
+  QueueField: queue
 }
 
-type NameOfRelationshipType {
-  plant: NameOfPlantType
+type queue {
+  queue: [order]
+}
+
+type vicePrinciple {
   id: ID
-  feature: NameOfFeatureType
-}
-
-type NameOfTaoTaoType {
-  forPlant: NameOfPlantListType
-  forFeature: NameOfFeatureListType
-  forRelationship: NameOfRelationshipListType
-}
-
-type QueryThatLigoudanWants {
-  TaoTaoFIeld: NameOfTaoTaoType
+  chineseName: String
 }

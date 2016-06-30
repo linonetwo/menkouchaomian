@@ -42,8 +42,9 @@ import {
   cancelOrder,
   finishOrder,
   getPrinciple,
-  getPrincipleList
-} from '../../api/connect-neo4j'
+  getPrincipleList,
+  getQueue
+} from './connect-neo4j'
 
 
 
@@ -69,7 +70,8 @@ const OrderType = new GraphQLObjectType({
     mainPrinciples: { type: new GraphQLList(MainPrincipleType) },
     vicePrinciples: { type: new GraphQLList(VicePrincipleType) },
     id: { type: GraphQLID },
-    price: { type: GraphQLFloat }
+    price: { type: GraphQLFloat },
+    startTime: { type: GraphQLString }
   }),
 });
 
@@ -91,21 +93,12 @@ const QueueType = new GraphQLObjectType({
 
 export const Schema = new GraphQLSchema({
   query: new GraphQLObjectType({
-    name: 'QueryThatLigoudanWants',
+    name: 'QueryOfQueue',
     fields: () => ({
       QueueField: {
         type: QueueType,
-        resolve: getDatabase,
+        resolve: getQueue,
       },
-    }),
-  }),
-  mutation: new GraphQLObjectType({
-    name: 'aaa',
-    fields: () => ({
-      createPlantField: MutationOfCreatePlant,
-      createFeatureField: MutationOfCreateFeature,
-      LetPlantArrayHasFeatureField: MutationOfLetPlantArrayHasFeature,
-      LetPlantHasFeatureArrayField: MutationOfLetPlantHasFeatureArray,
     }),
   }),
 });

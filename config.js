@@ -6,4 +6,6 @@ module.exports = Object.assign({
   neo4jBoltPort: process.env.NEO4JBOLTPORT || '7687',
   neo4jUserName: process.env.NEO4JUSERNAME || 'neo4j',
   neo4jPassword: process.env.NEO4PASSWORD || 'j4oen',
+  graphQLHost: 'http://10.11.33.118',
+  graphQLPort: 8964
 });
