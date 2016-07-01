@@ -91,7 +91,7 @@ export function initMetaData(ordinaryCookTime = 5, shopOpen = false, newUUID = u
     },
   })
 }
-initMetaData();
+
 
 // 添加米饭之类的主食
 export function addMainPrinciple(principleChineseName, newUUID = uuid.v4()) {

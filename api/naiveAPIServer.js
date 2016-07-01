@@ -28,6 +28,7 @@ import {
 
 let apiServer = express();
 
+initMetaData();
 
 // configure app to use bodyParser()
 // this will let us get the data from a POST
