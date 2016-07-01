@@ -201,7 +201,7 @@ export default class ApplicationMain extends Component {
       .then((response) => response.json())
       .then((responseData) => {
         this.setState({newKindsOfPrinciple: '', newKindsOfPrinciplePrice: '', newKindsOfPrincipleIsMainPrinciple: false});
-        this._fetchAll();
+        return this._fetchAll();
       })
       .catch((err) => console.log(err))
       .done();
@@ -439,7 +439,7 @@ export default class ApplicationMain extends Component {
                 text={'提交'}
                 raised={true}
                 style={styles.addNewKindsOfPrinciples_Submit_Button}
-                onPress={this._handleSubmitNewKindOfPrinciple.bind(this)}
+                onPress={this._handleSubmitNewKindOfPrinciple}
                 />
             </View>
           </View>

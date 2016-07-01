@@ -109,7 +109,6 @@ router.post('/closeShop', function(req, res) {
 router.post('/setOrderTip', function(req, res) {
   const id = req.body.orderUUID;
   const tip = req.body.orderTip;
-  console.log(id, tip);
   res.json({principleUUID: setOrderTip(id, tip)});
 });
 
