@@ -23,7 +23,7 @@ export const NO_RESULT = Symbol.for('NO_RESULT'); // 用于表示某些查找没
 
 function useNeo4jDB(url, userName, passWord) {
   // Create a driver instance, for the user neo4j with password neo4j.
-  const driver = neo4j.driver(`bolt://${url}`, neo4j.auth.basic(userName, passWord), { encrypted: true, trust: 'TRUST_ON_FIRST_USE');
+  const driver = neo4j.driver(`bolt://${url}`, neo4j.auth.basic(userName, passWord), { encrypted: true, trust: 'TRUST_ON_FIRST_USE'});
 
   // Create a session to run Cypher statements in.
   // Note: Always make sure to close sessions when you are done using them!
@@ -175,7 +175,7 @@ const getActiveOrderByUser = (userUUID, newUUID) => run({
 // 用食材的 uuid 列表和用户的 uuid 添加一个订单， 先检查有没有 ActiveOrder 在排队。 如果 results === NO_RESULT 就说明是老板下的单，得先给他创建一个 USER 账户
 export function addOrder(principleUUIDList, userUUID, newUUID = uuid.v4()) {
   return getActiveOrderByUser(userUUID, newUUID)
-  .then(results => results === NO_RESULT ? updateMetaData().then(results => getActiveOrderByUser(results[0].get('id'), newUUID)).then(results => results[0].get('id')) : results[0].get('id'))
+  .then(results => results === NO_RESULT ? initMetaData().then(results => getActiveOrderByUser(results[0].get('id'), newUUID)).then(results => results[0].get('id')) : results[0].get('id'))
   .then(orderUUID => {
 
     let promiseArray = [];
@@ -264,6 +264,19 @@ export function paidOrder(orderUUID) {
 }
 
 
+// 用于增加备注
+export function setOrderTip(orderUUID, tip) {
+  return run({
+    query: 'MATCH (o:ORDER {uuid: {orderUUID}}) SET o.tip={tip} RETURN o.uuid AS id',
+    params: {
+      orderUUID,
+      tip
+    }
+  })
+  .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in setOrderTip') : results[0].get('id'));
+}
+
+
 export function usedUpPrinciple(principleUUID) {
   return run({
     query: 'MATCH (p:PRINCIPLE {uuid: {principleUUID}}) SET p.usedUp=TRUE RETURN p.uuid AS id',
@@ -346,7 +359,7 @@ export function getActiveOrder() {
 export function getOrderDetail(orderUUID, ordinal = 0) {
   return updateOrderPrice(orderUUID)
     .then(() => run({
-      query: 'MATCH (u:USER)<--(o:ORDER {uuid: {orderUUID}}) RETURN o.price AS price, o.uuid AS orderUUID, o.startTime AS startTime, o.finished AS finished, o.canceled AS canceled, o.paid AS paid, u.userName AS userName, u.uuid AS userUUID',
+      query: 'MATCH (u:USER)<--(o:ORDER {uuid: {orderUUID}}) RETURN o.price AS price, o.uuid AS orderUUID, o.startTime AS startTime, o.finished AS finished, o.canceled AS canceled, o.paid AS paid, o.tip AS tip, u.userName AS userName, u.uuid AS userUUID',
       params: {
         orderUUID
       }
@@ -357,6 +370,7 @@ export function getOrderDetail(orderUUID, ordinal = 0) {
         vicePrinciples: [],
         ordinal,
         price: results[0].get('price') || NaN,
+        tip: results[0].get('tip') || '',
         finished: results[0].get('finished'),
         canceled: results[0].get('canceled'),
         paid: results[0].get('paid'),

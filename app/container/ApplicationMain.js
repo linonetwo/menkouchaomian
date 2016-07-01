@@ -45,6 +45,20 @@ const PrincipleInput = MKTextField.textfieldWithFloatingLabel()
   .build();
 
 
+const OrderTipleInput = MKTextField.textfieldWithFloatingLabel()
+  .withPlaceholder('备注')
+  .withTintColor(MKColor.Amber)
+  .withHighlightColor(MKColor.Amber)
+  .withTextInputStyle({color: MKColor.Amber})
+  .withFloatingLabelFont({
+    fontSize: 10,
+    fontStyle: 'italic',
+    fontWeight: '200',
+    color: '#FFC107'
+  })
+  .build();
+
+
 const PriceInput = MKTextField.textfieldWithFloatingLabel()
   .withPlaceholder('价格（知道就填）')
   .withTintColor(MKColor.Grey)
@@ -82,7 +96,8 @@ export default class ApplicationMain extends Component {
       orderToBeSet: {},
       isSetting: false,
       canCook: false,
-      principlesUsedUp: []
+      principlesUsedUp: [],
+      orderTip: ''
     };
   }
 
@@ -177,7 +192,6 @@ export default class ApplicationMain extends Component {
 
     this.setState({isAddingNewKindsOfPrinciple: false});
     if (newPrinciple !== '') {
-      console.log(isMainPrinciple);
       fetch(`${API_ROOT}/submitNewKindOfPrinciple`, {
         'method': 'POST',
         headers: new Headers({'Content-type': 'application/x-www-form-urlencoded', 'Accept': '*/*'}),
@@ -187,7 +201,7 @@ export default class ApplicationMain extends Component {
       .then((response) => response.json())
       .then((responseData) => {
         this.setState({newKindsOfPrinciple: '', newKindsOfPrinciplePrice: '', newKindsOfPrincipleIsMainPrinciple: false});
-        return this._fetchAll();
+        this._fetchAll();
       })
       .catch((err) => console.log(err))
       .done();
@@ -196,7 +210,7 @@ export default class ApplicationMain extends Component {
 
 
   _handleSetOrder = (order) => {
-    this.setState({isSettingOrder: true, orderToBeSet: order});
+    this.setState({isSettingOrder: true, orderToBeSet: order, orderTip: order.tip});
   }
 
   _handleCookFinished = () => {
@@ -307,6 +321,27 @@ export default class ApplicationMain extends Component {
     }
   }
 
+
+  _handleOrderTip = (tip) => {
+    this.setState({orderTip: tip});
+  }
+
+
+  _handleOrderTipSubmit = () => {
+    fetch(`${API_ROOT}/setOrderTip`, {
+      'method': 'POST',
+      headers: new Headers({'Content-type': 'application/x-www-form-urlencoded', 'Accept': '*/*'}),
+      'mode': 'cors',
+      'body': `orderUUID=${this.state.orderToBeSet.id}&orderTip=${this.state.orderTip}`
+    })
+    .then((response) => {
+      this.setState({isSettingOrder: false, orderTip: ''})
+      return this._fetchAll();
+    })
+    .catch((err) => console.log(err))
+    .done();
+  }
+
   render() {
 
     return (
@@ -353,7 +388,7 @@ export default class ApplicationMain extends Component {
               :
               this.state.queue
                 .filter(item => item.userUUID == this.state.userUUID, this)
-                .map(item => <ChaoFanItem order={item} key={item.id} isUser={this.state.user}/> )
+                .map(item => <ChaoFanItem order={item} key={item.id} isUser={this.state.user} setOrder={this._handleSetOrder}/> )
             }
 
 
@@ -397,7 +432,7 @@ export default class ApplicationMain extends Component {
                 rippleColor="rgba(255,152,0,.2)"
                 onCheckedChange={(e) => this.setState({newKindsOfPrincipleIsMainPrinciple: e.checked})}
                 />
-              <Text style={styles.isMainPrinciple_Text} >这是主食</Text>
+              <Text style={styles.isMainPrinciple_Text} >← 不是配料而是饭粉面等请选</Text>
             </View>
             <View>
               <Button
@@ -412,7 +447,7 @@ export default class ApplicationMain extends Component {
 
         <Modal
           open={this.state.isSettingOrder}
-          modalDidClose={() => this.setState({isSettingOrder: false})}
+          modalDidClose={() => {this._handleOrderTipSubmit();return this.setState({isSettingOrder: false});}}
           offset={0}
           overlayOpacity={0.75}
           animationDuration={200}
@@ -420,24 +455,33 @@ export default class ApplicationMain extends Component {
           closeOnTouchOutside={true}
           style={styles.dialog}>
           <View style={styles.setOrder}>
-            <Button
-              text={'炒完了'}
-              raised={true}
-              style={styles.setOrder_finished}
-              onPress={this._handleCookFinished}
-              />
-            <Button
-              text={'支付完了'}
-              raised={true}
-              style={styles.setOrder_paid}
-              onPress={this._handleCookPaid}
-              />
-            <Button
-              text={'取消这个订单'}
-              raised={true}
-              style={styles.setOrder_canceled}
-              onPress={this._handleCookCanceled}
-              />
+            <OrderTipleInput onTextChange={this._handleOrderTip} onSubmitEditing={() => this.setState({isSettingOrder: false})} defaultValue={this.state.orderTip} />
+            {
+              !this.state.user
+              ?
+              <View style={styles.setOrder_Buttons}>
+                <Button
+                  text={'炒完了'}
+                  raised={true}
+                  style={styles.setOrder_finished}
+                  onPress={this._handleCookFinished}
+                  />
+                <Button
+                  text={'支付完了'}
+                  raised={true}
+                  style={styles.setOrder_paid}
+                  onPress={this._handleCookPaid}
+                  />
+                <Button
+                  text={'取消这个订单'}
+                  raised={true}
+                  style={styles.setOrder_canceled}
+                  onPress={this._handleCookCanceled}
+                  />
+              </View>
+              :
+              <Text></Text>
+            }
           </View>
         </Modal>
         <Modal
@@ -470,6 +514,7 @@ var styles = StyleSheet.create({
   setting: {
     justifyContent: 'space-between',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingLeft: 5,
     paddingRight: 5,
     marginBottom: -5
@@ -503,7 +548,12 @@ var styles = StyleSheet.create({
   },
   setOrder: {
     flexDirection: 'column',
-    height: 250,
+    height: 300,
+    justifyContent: 'space-between'
+  },
+  setOrder_Buttons: {
+    flex: 1,
+    flexDirection: 'column',
     justifyContent: 'space-between'
   },
   setOrder_finished: {
