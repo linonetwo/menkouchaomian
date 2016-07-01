@@ -19,6 +19,7 @@ import {
   getPrincipleList,
   getQueue,
   usedUpPrinciple,
+  rewindPrinciple,
   getAll
 } from '../../api/connect-neo4j'
 
@@ -479,6 +480,25 @@ describe('usedUpPrinciple()', () => {
     return addUser(userName, uuid4User)
     .then(() => addVicePrinciple(vicePrincipleChineseName, uuid4VicePrinciple))
     .then(() => usedUpPrinciple(uuid4VicePrinciple))
+    .then(result => expect(result).to.be.equal(uuid4VicePrinciple))
+  });
+});
+
+
+describe('rewindPrinciple()', () => {
+  beforeEach(function() {
+    return cleanNodeAndRelationships(run);
+  });
+
+  it('add an order then finish it', () => {
+    const uuid4VicePrinciple = uuid.v4();
+    const vicePrincipleChineseName = '肉丝';
+
+
+    return addUser(userName, uuid4User)
+    .then(() => addVicePrinciple(vicePrincipleChineseName, uuid4VicePrinciple))
+    .then(() => usedUpPrinciple(uuid4VicePrinciple))
+    .then(() => rewindPrinciple(uuid4VicePrinciple))
     .then(result => expect(result).to.be.equal(uuid4VicePrinciple))
   });
 });

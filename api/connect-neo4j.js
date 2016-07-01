@@ -83,14 +83,15 @@ export function cleanNodeAndRelationships() {
 */
 
 
-export function updateMetaData(ordinaryCookTime = 5, shopOpen = false, newUUID = uuid.v4()) {
+export function initMetaData(ordinaryCookTime = 5, shopOpen = false, newUUID = uuid.v4()) {
   return run({
-    query: 'MERGE (c:COOK :USER) ON CREATE SET c.uuid={uuid} RETURN c.uuid AS id',
+    query: 'MERGE (c:COOK :USER) ON CREATE SET c.uuid={uuid}, c.shopOpen=FALSE RETURN c.uuid AS id',
     params: {
       uuid: newUUID,
     },
   })
 }
+initMetaData();
 
 // 添加米饭之类的主食
 export function addMainPrinciple(principleChineseName, newUUID = uuid.v4()) {
@@ -265,12 +266,54 @@ export function paidOrder(orderUUID) {
 
 export function usedUpPrinciple(principleUUID) {
   return run({
-    query: 'MATCH (p:PRINCIPLE {uuid: {principleUUID}}) SET p.usedUp=TRUE RETURN o.uuid AS id',
+    query: 'MATCH (p:PRINCIPLE {uuid: {principleUUID}}) SET p.usedUp=TRUE RETURN p.uuid AS id',
     params: {
       principleUUID
     }
   })
   .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in usedUpPrinciple') : results[0].get('id'));
+}
+
+
+export function rewindPrinciple(principleUUID) {
+  return run({
+    query: 'MATCH (p:PRINCIPLE {uuid: {principleUUID}}) SET p.usedUp=FALSE RETURN p.uuid AS id',
+    params: {
+      principleUUID
+    }
+  })
+  .then(results => results === NO_RESULT ? Promise.reject('Error: NO_RESULT in rewindPrinciple') : results[0].get('id'));
+}
+
+
+export function rewindAllPrinciples() {
+  return run({
+    query: 'MATCH (p:PRINCIPLE) SET p.usedUp=FALSE RETURN p.uuid AS id'
+  })
+  .then(results => results === NO_RESULT ? [] : results);
+}
+
+
+export function usedUpAllPrinciples() {
+  return run({
+    query: 'MATCH (p:PRINCIPLE) SET p.usedUp=TRUE RETURN p.uuid AS id'
+  })
+  .then(results => results === NO_RESULT ? [] : results);
+}
+
+
+export function shopClose() {
+  return run({
+    query: 'MATCH (c:COOK) SET c.shopOpen=FALSE RETURN c.uuid AS id'
+  })
+}
+
+
+export function shopOpen() {
+  return run({
+    query: 'MATCH (c:COOK) SET c.shopOpen=TRUE RETURN c.uuid AS id'
+  })
+  .then(rewindAllPrinciples);
 }
 
 
@@ -363,6 +406,18 @@ export function getOrderDetail(orderUUID, ordinal = 0) {
 }
 
 
+export function getCookMetaData() {
+  return run({
+    query: 'MATCH (c:COOK) RETURN c.shopOpen AS shopOpen'
+  })
+  .then(results => {
+    let cookData = {
+      shopOpen: results[0].get('shopOpen'),
+    };
+    return cookData;
+  })
+
+}
 
 
 export async function getQueue() {
@@ -373,7 +428,8 @@ export async function getQueue() {
 export async function getAll() {
   let queue = await getQueue();
   let principles = await getPrincipleList();
-  return {queue, principles}
+  let cookData = await getCookMetaData();
+  return {queue, principles, cookData}
 }
 
 
@@ -402,25 +458,27 @@ export function getPrincipleList() {
   let orederData = {mainPrinciples: [], vicePrinciples: []};
 
   return run({
-    query: 'MATCH (p:MAIN_PRINCIPLE) RETURN p.chineseName AS chineseName, p.uuid AS principleUUID, p.price AS price'
+    query: 'MATCH (p:MAIN_PRINCIPLE) RETURN p.chineseName AS chineseName, p.uuid AS principleUUID, p.price AS price, p.usedUp AS usedUp'
   })
   .then(results => {
     results.map(result => {
       orederData['mainPrinciples'].push({
         id: result.get('principleUUID'),
         chineseName: result.get('chineseName'),
+        usedUp: result.get('usedUp'),
         price: result.get('price') || NaN
       });
     });
   })
   .then(() => run({
-    query: 'MATCH (p:VICE_PRINCIPLE) RETURN p.chineseName AS chineseName, p.uuid AS principleUUID, p.price AS price'
+    query: 'MATCH (p:VICE_PRINCIPLE) RETURN p.chineseName AS chineseName, p.uuid AS principleUUID, p.price AS price, p.usedUp AS usedUp'
   }))
   .then(results => {
     results.map(result => {
       orederData['vicePrinciples'].push({
         id: result.get('principleUUID'),
         chineseName: result.get('chineseName'),
+        usedUp: result.get('usedUp'),
         price: result.get('price') || NaN
       });
     });

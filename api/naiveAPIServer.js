@@ -19,7 +19,10 @@ import {
   getPrincipleList,
   getQueue,
   usedUpPrinciple,
-  getAll
+  rewindPrinciple,
+  getAll,
+  shopClose,
+  shopOpen
 } from './connect-neo4j'
 
 let apiServer = express();
@@ -81,6 +84,24 @@ router.post('/orderPaid', function(req, res) {
 router.post('/orderCanceled', function(req, res) {
   const id = req.body.orderUUID;
   res.json({orderUUID: cancelOrder(id)});
+});
+
+router.post('/principlesUsedUp', function(req, res) {
+  const id = req.body.principleUUID;
+  res.json({principleUUID: usedUpPrinciple(id)});
+});
+
+router.post('/principlesRewind', function(req, res) {
+  const id = req.body.principleUUID;
+  res.json({principleUUID: rewindPrinciple(id)});
+});
+
+router.post('/openShop', function(req, res) {
+  res.json({cookUUID: shopOpen()});
+});
+
+router.post('/closeShop', function(req, res) {
+  res.json({cookUUID: shopClose()});
 });
 
 apiServer.use('/', router);

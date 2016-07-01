@@ -28,10 +28,10 @@ export default class Adder extends Component {
           </View>
           <ScrollView contentContainerStyle={styles.principles} >
             <View style={styles.principles_main}>
-              {this.props.principles.mainPrinciples.map(item => <Button text={item.chineseName} key={item.id} raised={this.props.principlesAdded.filter(usedItem => usedItem.id == item.id).length == 1} onPress={this.props.addPrinciple.bind(this, item)}/>)}
+              {this.props.principles.mainPrinciples.filter(item => !item.usedUp).map(item => <Button text={item.chineseName} key={item.id} raised={this.props.principlesAdded.filter(usedItem => usedItem.id == item.id).length == 1} onPress={this.props.addPrinciple.bind(this, item)}/>)}
             </View>
             <View style={styles.principles_vice}>
-              {this.props.principles.vicePrinciples.map(item => <Button text={item.chineseName} key={item.id} raised={this.props.principlesAdded.filter(usedItem => usedItem.id == item.id).length == 1} onPress={this.props.addPrinciple.bind(this, item)}/>)}
+              {this.props.principles.vicePrinciples.filter(item => !item.usedUp).map(item => <Button text={item.chineseName} key={item.id} raised={this.props.principlesAdded.filter(usedItem => usedItem.id == item.id).length == 1} onPress={this.props.addPrinciple.bind(this, item)}/>)}
             </View>
           </ScrollView>
 

@@ -18,7 +18,6 @@ import Adder from '../component/Adder';
 import Loginer from '../component/Loginer';
 import UserTips from '../component/UserTips';
 
-
 import Modal from 'react-native-simple-modal';
 import { Button } from 'react-native-material-design';
 
@@ -80,7 +79,10 @@ export default class ApplicationMain extends Component {
       newKindsOfPrinciplePrice: '',
       newKindsOfPrincipleIsMainPrinciple: false,
       isSettingOrder: false,
-      orderToBeSet: {}
+      orderToBeSet: {},
+      isSetting: false,
+      canCook: false,
+      principlesUsedUp: []
     };
   }
 
@@ -98,8 +100,10 @@ export default class ApplicationMain extends Component {
         this.setState({
           queue: responseData.queue,
           principles: responseData.principles,
+          principlesUsedUp: responseData.principles.mainPrinciples.filter((item) => item.usedUp).concat(responseData.principles.vicePrinciples.filter((item) => item.usedUp)),
           loaded: true,
-          isRefreshing: false
+          isRefreshing: false,
+          canCook: responseData.cookData.shopOpen
         });
       })
       .catch((err) => {console.log(err);})
@@ -240,6 +244,69 @@ export default class ApplicationMain extends Component {
     .done();
   }
 
+  _handleChangeCanCook = () => {
+    this.setState({canCook: !this.state.canCook});
+    if (this.state.canCook) { // 本来开着，那就收摊
+      fetch(`${API_ROOT}/closeShop`, {
+        'method': 'POST',
+        headers: new Headers({'Content-type': 'application/x-www-form-urlencoded', 'Accept': '*/*'}),
+        'mode': 'cors',
+        'body': `canCook=${!this.state.canCook}`
+      })
+      .then((response) => {
+        return this._fetchAll();
+      })
+      .catch((err) => console.log(err))
+      .done();
+    } else {
+      fetch(`${API_ROOT}/openShop`, {
+        'method': 'POST',
+        headers: new Headers({'Content-type': 'application/x-www-form-urlencoded', 'Accept': '*/*'}),
+        'mode': 'cors',
+        'body': `canCook=${!this.state.canCook}`
+      })
+      .then((response) => {
+        return this._fetchAll();
+      })
+      .catch((err) => console.log(err))
+      .done();
+    }
+
+  }
+
+  _handleUsedUpPrinciple = (item) => {
+    let indexOfRedundentItem = -1;
+    const alreadyHasThisItem = this.state.principlesUsedUp.filter((usedItem, index) => {indexOfRedundentItem = index; return usedItem.id == item.id;}).length == 1; // filter 出来的数组长度为 1 就说明已经存在此元素，同时我们还存下了这个元素的 index
+    if (alreadyHasThisItem) { // 此时要从 principlesUsedUp 中删掉这个元素，并在数据库中恢复这个食材的可用性
+      this.setState({principlesUsedUp: this.state.principlesUsedUp.filter(usedItem => usedItem.id !== item.id)});
+      fetch(`${API_ROOT}/principlesRewind`, {
+        'method': 'POST',
+        headers: new Headers({'Content-type': 'application/x-www-form-urlencoded', 'Accept': '*/*'}),
+        'mode': 'cors',
+        'body': `principleUUID=${item.id}`
+      })
+      .then((response) => {
+        return this._fetchAll();
+      })
+      .catch((err) => console.log(err))
+      .done();
+
+    } else { // 此时则是往 principlesUsedUp 中加入这个元素，并向服务器说这个食材用光了
+      this.setState({principlesUsedUp: this.state.principlesUsedUp.concat(item)});
+      fetch(`${API_ROOT}/principlesUsedUp`, {
+        'method': 'POST',
+        headers: new Headers({'Content-type': 'application/x-www-form-urlencoded', 'Accept': '*/*'}),
+        'mode': 'cors',
+        'body': `principleUUID=${item.id}`
+      })
+      .then((response) => {
+        return this._fetchAll();
+      })
+      .catch((err) => console.log(err))
+      .done();
+    }
+  }
+
   render() {
 
     return (
@@ -247,7 +314,27 @@ export default class ApplicationMain extends Component {
         {/*在未获得登录信息的时候显示登录框*/}
         { this.state.user == undefined ? <Loginer handleInput={this._dependUser}/> : <Text></Text> }
         {/*在未添加菜的时候显示给用户的提示*/}
-        { this.state.user == true && this.state.queue.filter(item => item.userUUID == this.state.userUUID, this).length == 0 ? <UserTips userName={this.state.userName}/> : <Text></Text> }
+        { this.state.user == true && this.state.queue.filter(item => item.userUUID == this.state.userUUID, this).length == 0 ? <UserTips userName={this.state.userName} canCook={this.state.canCook}/> : <Text></Text> }
+        {/*给炒面大叔显示一个控制台*/}
+        {
+          this.state.user == false
+          ?
+          <View style={styles.setting}>
+            <Button
+              text={this.state.canCook?'当前状态:已出摊':'当前状态:收摊'}
+              raised={true}
+              onPress={this._handleChangeCanCook}
+              />
+            <Button
+              text={'有料卖光了'}
+              raised={true}
+              onPress={() => this.setState({isSetting: true})}
+              />
+          </View>
+          :
+          <Text></Text>
+      }
+
         <ScrollView
           contentContainerStyle={styles.listView}
           refreshControl={
@@ -292,12 +379,12 @@ export default class ApplicationMain extends Component {
           animationDuration={200}
           animationTension={40}
           modalDidOpen={() => undefined}
-          modalDidClose={() => undefined}
+          modalDidClose={() => this.setState({isAddingNewKindsOfPrinciple: false})}
           closeOnTouchOutside={true}
           style={styles.dialog}>
           <View style={styles.newKindsOfPrincipleTip}>
             <Text style={styles.newKindsOfPrincipleTip_text} >填写信息加入你想加的料</Text>
-            <Text style={styles.newKindsOfPrincipleTip_text} >大叔没有的料是加不了的</Text>
+            <Text style={styles.newKindsOfPrincipleTip_text} >用光或没有的料加不了的</Text>
             <PrincipleInput onTextChange={text => this.setState({newKindsOfPrinciple: text})}/>
             <PriceInput onTextChange={text => this.setState({newKindsOfPrinciplePrice: text})}/>
             <View style={styles.isMainPrinciple}>
@@ -353,6 +440,20 @@ export default class ApplicationMain extends Component {
               />
           </View>
         </Modal>
+        <Modal
+          open={this.state.isSetting}
+          modalDidClose={() => this.setState({isSetting: false})}
+          offset={0}
+          overlayOpacity={0.75}
+          animationDuration={200}
+          animationTension={40}
+          closeOnTouchOutside={true}
+          style={styles.dialog}>
+          <View style={styles.setting}>
+            {this.state.principles.mainPrinciples.map(item => <Button text={item.chineseName} raised={!(this.state.principlesUsedUp.filter(usedItem => usedItem.id == item.id).length == 1)} key={item.id} onPress={this._handleUsedUpPrinciple.bind(null, item)}/>)}
+            {this.state.principles.vicePrinciples.map(item => <Button text={item.chineseName} raised={!(this.state.principlesUsedUp.filter(usedItem => usedItem.id == item.id).length == 1)} key={item.id} onPress={this._handleUsedUpPrinciple.bind(null, item)}/>)}
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -365,6 +466,13 @@ var styles = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'flex-start',
 
+  },
+  setting: {
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    paddingLeft: 5,
+    paddingRight: 5,
+    marginBottom: -5
   },
   listView: {
     paddingTop: 10,
