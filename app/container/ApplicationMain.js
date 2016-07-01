@@ -113,7 +113,7 @@ export default class ApplicationMain extends Component {
 
   _dependUser = (e) => {
     const userName = e.nativeEvent.text;
-    if (userName == 'a') {
+    if (userName == '1043082627') {
       this.setState({
         user: false
       })

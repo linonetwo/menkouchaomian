@@ -23,7 +23,7 @@ export const NO_RESULT = Symbol.for('NO_RESULT'); // 用于表示某些查找没
 
 function useNeo4jDB(url, userName, passWord) {
   // Create a driver instance, for the user neo4j with password neo4j.
-  const driver = neo4j.driver(`bolt://${url}`, neo4j.auth.basic(userName, passWord));
+  const driver = neo4j.driver(`bolt://${url}`, neo4j.auth.basic(userName, passWord), { encrypted: true, trust: 'TRUST_ON_FIRST_USE');
 
   // Create a session to run Cypher statements in.
   // Note: Always make sure to close sessions when you are done using them!
@@ -461,27 +461,31 @@ export function getPrincipleList() {
     query: 'MATCH (p:MAIN_PRINCIPLE) RETURN p.chineseName AS chineseName, p.uuid AS principleUUID, p.price AS price, p.usedUp AS usedUp'
   })
   .then(results => {
-    results.map(result => {
-      orederData['mainPrinciples'].push({
-        id: result.get('principleUUID'),
-        chineseName: result.get('chineseName'),
-        usedUp: result.get('usedUp'),
-        price: result.get('price') || NaN
+    if (results !== NO_RESULT) {
+      results.map(result => {
+        orederData['mainPrinciples'].push({
+          id: result.get('principleUUID'),
+          chineseName: result.get('chineseName'),
+          usedUp: result.get('usedUp'),
+          price: result.get('price') || NaN
+        });
       });
-    });
+    }
   })
   .then(() => run({
     query: 'MATCH (p:VICE_PRINCIPLE) RETURN p.chineseName AS chineseName, p.uuid AS principleUUID, p.price AS price, p.usedUp AS usedUp'
   }))
   .then(results => {
-    results.map(result => {
-      orederData['vicePrinciples'].push({
-        id: result.get('principleUUID'),
-        chineseName: result.get('chineseName'),
-        usedUp: result.get('usedUp'),
-        price: result.get('price') || NaN
+    if (results !== NO_RESULT) {
+      results.map(result => {
+        orederData['vicePrinciples'].push({
+          id: result.get('principleUUID'),
+          chineseName: result.get('chineseName'),
+          usedUp: result.get('usedUp'),
+          price: result.get('price') || NaN
+        });
       });
-    });
+    }
     return orederData;
   });
 }
